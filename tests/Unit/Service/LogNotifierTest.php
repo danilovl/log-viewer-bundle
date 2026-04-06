@@ -12,8 +12,10 @@ use Danilovl\LogViewerBundle\Service\{
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Notifier\NotifierInterface;
 use Symfony\Component\Notifier\Notification\Notification;
-use Symfony\Component\Notifier\Recipient\NoRecipient;
-use Symfony\Component\Notifier\Recipient\RecipientInterface;
+use Symfony\Component\Notifier\Recipient\{
+    NoRecipient,
+    RecipientInterface
+};
 
 final class LogNotifierTest extends TestCase
 {

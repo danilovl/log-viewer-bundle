@@ -8,8 +8,10 @@ use Danilovl\LogViewerBundle\Parser\Reader\{
     LogSourceManager
 };
 use Danilovl\LogViewerBundle\Service\ConfigurationProvider;
-use PHPUnit\Framework\MockObject\MockObject;
-use PHPUnit\Framework\MockObject\Stub;
+use PHPUnit\Framework\MockObject\{
+    MockObject,
+    Stub
+};
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\{
     RequestStack,
