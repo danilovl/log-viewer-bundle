@@ -10,6 +10,7 @@
       isBookmarked(entry),
       store.filters.filterSearchHighlight,
       store.filters.filterSearch,
+      logPageStatisticEnabled,
     ]"
     class="log-entry"
   >
