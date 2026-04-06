@@ -49,6 +49,11 @@ Explore the user interface and features of the Log Viewer:
 
 ![Features](/readme/features.png?raw=true "Features")
 
+## Requirements
+
+- PHP 8.5+
+- Symfony 8.0+
+
 ## Installation
 
 1. Install the package via Composer:
