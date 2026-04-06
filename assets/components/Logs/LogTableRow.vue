@@ -18,11 +18,7 @@
         <button class="btn-bookmark" :class="{ active: isBookmarked(entry) }" @click="toggleBookmark(entry)">
           <IconStar :width="18" :height="18" :fill="isBookmarked(entry) ? 'currentColor' : 'none'" />
         </button>
-        <div
-          v-if="showSource && entry.sourceId"
-          class="source-link"
-          :title="entry.file"
-        >
+        <div v-if="showSource && entry.sourceId" class="source-link" :title="entry.file">
           <IconFile :width="18" :height="18" />
         </div>
       </div>

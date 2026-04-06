@@ -36,5 +36,8 @@ jobs:
       - name: Run phpstan
         run: composer phpstan
 
+      - name: Fix permissions for bin/dist
+        run: chmod -R 777 bin/dist
+
       - name: Run tests
         run: composer tests
