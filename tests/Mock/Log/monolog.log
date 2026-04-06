@@ -1,0 +1,4 @@
+[2026-03-29T09:44:14.945778+00:00] app.INFO: test message [] []
+[2026-03-29T09:44:15.945778+00:00] app.ERROR: error message {"key": "value"} {"extra": "data"}
+[2026-03-29T09:44:16.945778+00:00] request.CRITICAL: critical message {"user_id": 1} []
+invalid line

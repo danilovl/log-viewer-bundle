@@ -1,0 +1,25 @@
+2026-03-27 21:04:56,966 CRIT Supervisor is running as root.  Privileges were not dropped because no user is specified in the config file.  If you intend to run as root, you can set user=root in the config file to avoid this message.
+2026-03-27 21:04:56,966 WARN No file matches via include "/etc/supervisor/conf.d/*.conf"
+2026-03-27 21:04:56,969 INFO RPC interface 'supervisor' initialized
+2026-03-27 21:04:56,969 CRIT Server 'unix_http_server' running without any HTTP authentication checking
+2026-03-27 21:04:56,969 INFO supervisord started with pid 733
+2026-03-27 21:34:48,561 INFO spawned: 'symfony-scheduler' with pid 2347
+2026-03-27 21:34:49,715 INFO success: symfony-scheduler entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2026-03-27 21:48:48,072 INFO waiting for symfony-scheduler to stop
+2026-03-27 21:48:48,079 INFO stopped: symfony-scheduler (exit status 0)
+2026-03-27 21:48:49,083 INFO spawned: 'symfony-scheduler' with pid 5088
+2026-03-27 21:48:50,239 INFO success: symfony-scheduler entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2026-03-27 21:50:09,843 INFO waiting for symfony-scheduler to stop
+2026-03-27 21:50:09,850 INFO stopped: symfony-scheduler (exit status 0)
+2026-03-27 21:50:23,409 INFO spawned: 'symfony-scheduler' with pid 5214
+2026-03-27 21:50:24,540 INFO success: symfony-scheduler entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2026-03-28 20:55:04,325 INFO waiting for symfony-scheduler to stop
+2026-03-28 20:55:04,478 INFO stopped: symfony-scheduler (exit status 0)
+2026-03-28 20:55:10,254 INFO spawned: 'symfony-scheduler' with pid 20169
+2026-03-28 20:55:11,461 INFO success: symfony-scheduler entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2026-03-28 20:58:47,610 INFO waiting for symfony-scheduler to stop
+2026-03-28 20:58:47,620 INFO stopped: symfony-scheduler (exit status 0)
+2026-03-28 20:58:51,458 INFO spawned: 'symfony-scheduler' with pid 20477
+2026-03-28 20:58:52,624 INFO success: symfony-scheduler entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2026-03-28 21:01:15,234 INFO waiting for symfony-scheduler to stop
+2026-03-28 21:01:15,244 INFO stopped: symfony-scheduler (exit status 0)

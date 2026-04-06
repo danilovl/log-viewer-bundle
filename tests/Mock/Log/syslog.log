@@ -1,0 +1,2 @@
+Oct 11 22:14:15 host service[123]: important message
+Oct 11 22:15:01 host cron[456]: task completed

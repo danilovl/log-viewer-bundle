@@ -1,0 +1,10 @@
+.idea/
+.phpunit
+.phpunit.result.cache
+.phpunit.cache
+composer.lock
+/var/
+/vendor/
+/.env
+/src/Resources/public/build
+.junie/memory

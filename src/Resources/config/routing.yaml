@@ -1,0 +1,8 @@
+danilovl_log_viewer_api:
+  resource: '../../Controller/Api/LogViewerController.php'
+  type: attribute
+  prefix: '%danilovl_log_viewer.api_prefix%'
+
+danilovl_log_viewer_dashboard:
+  resource: '../../Controller/DashboardController.php'
+  type: attribute

@@ -1,0 +1,14 @@
+services:
+  _defaults:
+    autowire: true
+    autoconfigure: true
+
+  "Danilovl\\LogViewerBundle\\":
+    resource: '../../*'
+    exclude:
+      - '../../DependencyInjection'
+      - '../../DTO'
+      - '../../LogViewerBundle.php'
+      - '../../Service/ConfigurationProvider.php'
+
+

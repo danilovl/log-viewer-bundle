@@ -1,0 +1,27 @@
+2026-03-29T00:59:20.294161+01:00 DESKTOP-test kernel: br-0b07648bffaf: port 2(veth74abc02) entered disabled state
+2026-03-29T00:59:20.294251+01:00 DESKTOP-test kernel: vethaecd40d: renamed from eth0
+2026-03-29T00:59:20.357755+01:00 DESKTOP-test kernel: br-0b07648bffaf: port 2(veth74abc02) entered disabled state
+2026-03-29T00:59:20.357770+01:00 DESKTOP-test kernel: veth74abc02 (unregistering): left allmulticast mode
+2026-03-29T00:59:20.357771+01:00 DESKTOP-test kernel: veth74abc02 (unregistering): left promiscuous mode
+2026-03-29T00:59:20.357772+01:00 DESKTOP-test kernel: br-0b07648bffaf: port 2(veth74abc02) entered disabled state
+2026-03-29T00:59:24.649742+01:00 DESKTOP-test kernel: br-0b07648bffaf: port 3(veth0dc91dc) entered disabled state
+2026-03-29T00:59:24.649768+01:00 DESKTOP-test kernel: veth5daf80b: renamed from eth0
+2026-03-29T00:59:24.709805+01:00 DESKTOP-test kernel: br-0b07648bffaf: port 3(veth0dc91dc) entered disabled state
+2026-03-29T00:59:24.709828+01:00 DESKTOP-test kernel: veth0dc91dc (unregistering): left allmulticast mode
+2026-03-29T00:59:24.709829+01:00 DESKTOP-test kernel: veth0dc91dc (unregistering): left promiscuous mode
+2026-03-29T00:59:24.709830+01:00 DESKTOP-test kernel: br-0b07648bffaf: port 3(veth0dc91dc) entered disabled state
+2026-03-29T08:24:59.060920+02:00 DESKTOP-test kernel: hv_utils: TimeSync IC version 4.0
+2026-03-29T12:41:53.954324+02:00 DESKTOP-test kernel: br-0b07648bffaf: port 2(veth4cd8ddb) entered blocking state
+2026-03-29T12:41:53.954326+02:00 DESKTOP-test kernel: br-0b07648bffaf: port 2(veth4cd8ddb) entered disabled state
+2026-03-29T12:41:53.954343+02:00 DESKTOP-test kernel: veth4cd8ddb: entered allmulticast mode
+2026-03-29T12:41:53.954399+02:00 DESKTOP-test kernel: veth4cd8ddb: entered promiscuous mode
+2026-03-29T12:41:53.999682+02:00 DESKTOP-test kernel: br-0b07648bffaf: port 3(vethc9bd3ef) entered blocking state
+2026-03-29T12:41:53.999701+02:00 DESKTOP-test kernel: br-0b07648bffaf: port 3(vethc9bd3ef) entered disabled state
+2026-03-29T12:41:53.999702+02:00 DESKTOP-test kernel: vethc9bd3ef: entered allmulticast mode
+2026-03-29T12:41:53.999703+02:00 DESKTOP-test kernel: vethc9bd3ef: entered promiscuous mode
+2026-03-29T12:41:53.999704+02:00 DESKTOP-test kernel: br-0b07648bffaf: port 3(vethc9bd3ef) entered blocking state
+2026-03-29T12:41:53.999704+02:00 DESKTOP-test kernel: br-0b07648bffaf: port 3(vethc9bd3ef) entered forwarding state
+2026-03-29T12:41:54.011374+02:00 DESKTOP-test kernel: eth0: renamed from veth5e0ad9b
+2026-03-29T12:41:54.049630+02:00 DESKTOP-test kernel: br-0b07648bffaf: port 3(vethc9bd3ef) entered disabled state
+2026-03-29T12:41:54.049652+02:00 DESKTOP-test kernel: br-0b07648bffaf: port 2(veth4cd8ddb) entered blocking state
+2026-03-29T12:41:54.049653+02:00 DESKTOP-test kernel: br-0b07648bffaf: port 2(veth4cd8ddb) entered forwarding state

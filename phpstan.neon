@@ -1,0 +1,14 @@
+parameters:
+ level: 9
+ paths:
+    - src
+    - tests
+ ignoreErrors:
+    -
+        message: '#While loop condition is always true.#'
+        path: src/Command/LogWatcherCommand.php
+        reportUnmatched: false
+    -
+        message: '#Unreachable statement - code above always terminates.#'
+        path: src/Command/LogWatcherCommand.php
+        reportUnmatched: false

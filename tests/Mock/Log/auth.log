@@ -1,0 +1,16 @@
+2026-03-29T00:05:43.791811+01:00 DESKTOP-test sudo: danilovl : TTY=pts/107 ; PWD=/home/danilovl/www/local/FoodApp ; USER=root ; COMMAND=/usr/bin/rm -rf var/cache/
+2026-03-29T00:05:43.797260+01:00 DESKTOP-test sudo: pam_unix(sudo:session): session opened for user root(uid=0) by (uid=1000)
+2026-03-29T00:05:44.028083+01:00 DESKTOP-test sudo: pam_unix(sudo:session): session closed for user root
+2026-03-29T00:09:01.709135+01:00 DESKTOP-test CRON[96115]: pam_unix(cron:session): session opened for user root(uid=0) by root(uid=0)
+2026-03-29T00:09:01.710241+01:00 DESKTOP-test CRON[96115]: pam_unix(cron:session): session closed for user root
+2026-03-29T00:17:02.252433+01:00 DESKTOP-test CRON[27827]: pam_unix(cron:session): session opened for user root(uid=0) by root(uid=0)
+2026-03-29T00:17:02.255366+01:00 DESKTOP-test CRON[27827]: pam_unix(cron:session): session closed for user root
+2026-03-29T00:39:01.798883+01:00 DESKTOP-test CRON[7431]: pam_unix(cron:session): session opened for user root(uid=0) by root(uid=0)
+2026-03-29T00:39:01.799821+01:00 DESKTOP-test CRON[7431]: pam_unix(cron:session): session closed for user root
+2026-03-29T09:39:01.671770+02:00 DESKTOP-test CRON[37355]: pam_unix(cron:session): session opened for user root(uid=0) by root(uid=0)
+2026-03-29T09:39:01.672716+02:00 DESKTOP-test CRON[37355]: pam_unix(cron:session): session closed for user root
+2026-03-29T10:09:01.546496+02:00 DESKTOP-test CRON[43476]: pam_unix(cron:session): session opened for user root(uid=0) by root(uid=0)
+2026-03-29T10:09:01.548937+02:00 DESKTOP-test CRON[43476]: pam_unix(cron:session): session closed for user root
+2026-03-29T10:17:01.375028+02:00 DESKTOP-test CRON[66129]: pam_unix(cron:session): session opened for user root(uid=0) by root(uid=0)
+2026-03-29T10:17:01.376976+02:00 DESKTOP-test CRON[66129]: pam_unix(cron:session): session closed for user root
+2026-03-29T10:39:01.021648+02:00 DESKTOP-test CRON[10476]: pam_unix(cron:session): session opened for user root(uid=0) by root(uid=0)

@@ -1,0 +1,29 @@
+services:
+  php:
+    build:
+      context: ./
+      dockerfile: ./docker/php/Dockerfile
+    expose:
+      - '9000'
+    volumes:
+      - "./:/var/www/html/app"
+    working_dir: /var/www/html/app
+    env_file:
+      - .env
+
+  go:
+    build:
+      context: ./bin/go-parser
+      dockerfile: ../../docker/go/Dockerfile
+    volumes:
+      - "./bin/dist:/dist"
+    command: sh -c "cp /app/go-parser /dist/go-parser"
+
+  node:
+    build:
+      context: ./
+      dockerfile: ./docker/node/Dockerfile
+    volumes:
+      - './:/app'
+      - '/app/node_modules'
+    working_dir: /app
