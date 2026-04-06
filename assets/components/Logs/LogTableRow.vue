@@ -40,7 +40,7 @@
         message-class="log-message"
         :highlight-text="store.filters.filterSearchHighlight ? store.filters.filterSearch : ''"
       />
-      <AskAi :entry="entry" @open-editor="$emit('openAiEditor', entry)" />
+      <AskAi :entry="entry" @open-editor="onOpenAiEditor" />
       <div v-if="entry.sql" class="sql-block">
         <code>{{ entry.sql }}</code>
       </div>
@@ -50,7 +50,7 @@
 </template>
 
 <script setup lang="ts">
-import type { LogEntry } from '@/types'
+import type { LogEntry, AiChat } from '@/types'
 import { parseTimestamp } from '@/utils/format'
 import { useLogBookmarks } from '@/stores/log/useLogBookmarks'
 import { useLogStore } from '@/stores/useLogStore'
@@ -66,12 +66,16 @@ defineProps<{
   showSource?: boolean
 }>()
 
-defineEmits<{
-  (e: 'openAiEditor', entry: LogEntry): void
-}>()
-
 const store = useLogStore()
 const { toggleBookmark, isBookmarked } = useLogBookmarks()
+
+const emit = defineEmits<{
+  (e: 'open-ai-editor', chat: AiChat, entry: LogEntry): void
+}>()
+
+function onOpenAiEditor(chat: AiChat, entry: LogEntry): void {
+  emit('open-ai-editor', chat, entry)
+}
 
 function parseTs(ts: string): { datePart: string; timePart: string } {
   return parseTimestamp(ts || '')
