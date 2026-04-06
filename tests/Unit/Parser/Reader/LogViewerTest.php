@@ -341,6 +341,7 @@ final class LogViewerTest extends TestCase
             logPageAutoRefreshShowCountdown: false,
             logPageLimit: 50,
             aiButtonLevels: ['error', 'critical', 'alert', 'emergency'],
+            aiChats: [],
             apiPrefix: '',
             encoreBuildName: null,
             sourceRemoteHosts: [],

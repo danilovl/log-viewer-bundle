@@ -194,6 +194,36 @@ final class Configuration implements ConfigurationInterface
             ->addDefaultsIfNotSet()
             ->children()
                 ->append($this->getLevelsNode('button_levels', 'Log levels for which "Ask AI" button appears on log entries.', self::LEVELS))
+                ->arrayNode('chats')
+                    ->info('AI chat configurations.')
+                    ->arrayPrototype()
+                        ->children()
+                            ->scalarNode('name')
+                                ->info('Display name for the AI chat.')
+                                ->isRequired()
+                                ->cannotBeEmpty()
+                            ->end()
+                            ->scalarNode('url')
+                                ->info('URL for the AI chat service. For search/prompt services, include query parameter (e.g., https://chatgpt.com/?q=).')
+                                ->isRequired()
+                                ->cannotBeEmpty()
+                            ->end()
+                            ->booleanNode('has_prompt')
+                                ->info('If true, the chat supports a prompt that can be sent via URL.')
+                                ->defaultTrue()
+                            ->end()
+                        ->end()
+                    ->end()
+                    ->defaultValue([
+                        ['name' => 'ChatGPT', 'url' => 'https://chatgpt.com/?q=', 'has_prompt' => true],
+                        ['name' => 'Perplexity', 'url' => 'https://www.perplexity.ai/search?q=', 'has_prompt' => true],
+                        ['name' => 'DeepAI', 'url' => 'https://deepai.org/chat?q=', 'has_prompt' => true],
+                        ['name' => 'Grok', 'url' => 'https://grok.com/?q=', 'has_prompt' => true],
+                        ['name' => 'Gemini', 'url' => 'https://gemini.google.com/app', 'has_prompt' => false],
+                        ['name' => 'Copilot', 'url' => 'https://www.bing.com/chat', 'has_prompt' => false],
+                        ['name' => 'Claude', 'url' => 'https://claude.ai/l', 'has_prompt' => false]
+                    ])
+                ->end()
             ->end();
 
         return $node;

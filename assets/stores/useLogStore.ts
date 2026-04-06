@@ -94,6 +94,7 @@ export const useLogStore = defineStore('log', () => {
       dashboardPageStatisticEnabled: logConfig.dashboardPageStatisticEnabled,
       liveLogPageEnabled: logConfig.liveLogPageEnabled,
       liveSelectedLevels: logConfig.liveSelectedLevels,
+      aiChats: logConfig.aiChats,
       refreshCountdown: autoRefresh.refreshCountdown,
       dashboardRefreshCountdown: autoRefresh.dashboardRefreshCountdown,
       liveRefreshCountdown: autoRefresh.liveRefreshCountdown,
@@ -117,6 +118,7 @@ export const useLogStore = defineStore('log', () => {
     liveLogPageInterval: logConfig.liveLogPageInterval,
     liveSelectedLevels: logConfig.liveSelectedLevels,
     aiButtonLevels: logConfig.aiButtonLevels,
+    aiChats: logConfig.aiChats,
     settingsStore,
   })
 

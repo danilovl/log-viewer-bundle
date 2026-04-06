@@ -57,37 +57,37 @@ final class AccessLogParserTest extends TestCase
     }
 
     public static function provideParseCases(): Generator
-{
-    yield [
-        '127.0.0.1 - - [31/Mar/2026:20:45:01 +0000] "GET / HTTP/1.1" 200 123 "-" "Mozilla/5.0"',
-        'access.log',
-        '31/Mar/2026:20:45:01 +0000',
-        'INFO',
-        'GET / HTTP/1.1'
-    ];
+    {
+        yield [
+            '127.0.0.1 - - [31/Mar/2026:20:45:01 +0000] "GET / HTTP/1.1" 200 123 "-" "Mozilla/5.0"',
+            'access.log',
+            '31/Mar/2026:20:45:01 +0000',
+            'INFO',
+            'GET / HTTP/1.1'
+        ];
 
-    yield [
-        '192.168.1.1 - user [01/Apr/2026:10:00:05 +0000] "POST /login HTTP/1.1" 401 45 "http://referer" "Agent"',
-        'access.log',
-        '01/Apr/2026:10:00:05 +0000',
-        'WARNING',
-        'POST /login HTTP/1.1'
-    ];
+        yield [
+            '192.168.1.1 - user [01/Apr/2026:10:00:05 +0000] "POST /login HTTP/1.1" 401 45 "http://referer" "Agent"',
+            'access.log',
+            '01/Apr/2026:10:00:05 +0000',
+            'WARNING',
+            'POST /login HTTP/1.1'
+        ];
 
-    yield [
-        '8.8.8.8 - - [01/Apr/2026:11:00:00 +0000] "GET /error HTTP/1.1" 500 0 "-" "-"',
-        'access.log',
-        '01/Apr/2026:11:00:00 +0000',
-        'ERROR',
-        'GET /error HTTP/1.1'
-    ];
+        yield [
+            '8.8.8.8 - - [01/Apr/2026:11:00:00 +0000] "GET /error HTTP/1.1" 500 0 "-" "-"',
+            'access.log',
+            '01/Apr/2026:11:00:00 +0000',
+            'ERROR',
+            'GET /error HTTP/1.1'
+        ];
 
-    yield [
-        'invalid line',
-        'access.log',
-        '',
-        'INFO',
-        'invalid line'
-    ];
-}
+        yield [
+            'invalid line',
+            'access.log',
+            '',
+            'INFO',
+            'invalid line'
+        ];
+    }
 }

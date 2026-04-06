@@ -148,6 +148,7 @@ PHP;
             logPageAutoRefreshShowCountdown: false,
             logPageLimit: 50,
             aiButtonLevels: [],
+            aiChats: [],
             apiPrefix: '',
             encoreBuildName: null,
             sourceRemoteHosts: [],

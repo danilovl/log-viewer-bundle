@@ -29,6 +29,7 @@ import '@/style/dashboard.css'
     liveLogPageInterval: null,
     liveSelectedLevels: [],
     aiButtonLevels: [],
+    aiChats: [],
   }
 
   setApiPrefix(config.apiPrefix)

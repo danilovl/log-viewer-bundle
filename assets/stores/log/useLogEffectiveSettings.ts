@@ -1,6 +1,7 @@
 import { computed } from 'vue'
 import type { Ref } from 'vue'
 import type { useSettingsStore } from '../useSettingsStore'
+import type { AiChat } from '@/types'
 
 type SettingsStore = ReturnType<typeof useSettingsStore>
 
@@ -16,6 +17,7 @@ interface EffectiveSettingsOptions {
   dashboardPageStatisticEnabled: Ref<boolean>
   liveLogPageEnabled: Ref<boolean>
   liveSelectedLevels: Ref<string[]>
+  aiChats: Ref<AiChat[]>
   refreshCountdown: Ref<number | null>
   dashboardRefreshCountdown: Ref<number | null>
   liveRefreshCountdown: Ref<number | null>
@@ -84,8 +86,13 @@ export function useLogEffectiveSettings(options: EffectiveSettingsOptions) {
     return options.liveLogPageEnabled.value && options.liveRefreshCountdown.value !== null
   })
 
+  const aiChats = computed(() => {
+    return options.aiChats.value
+  })
+
   return {
     aiButtonLevels,
+    aiChats,
     logPageStatisticEnabled,
     logPageAutoRefreshEnabled,
     logPageLimit,

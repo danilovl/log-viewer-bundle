@@ -2,11 +2,17 @@
 
 namespace Danilovl\LogViewerBundle\Tests\Unit\Service;
 
-use Danilovl\LogViewerBundle\DTO\{LogEntry};
-use Danilovl\LogViewerBundle\Service\{ConfigurationProvider, LogNotifier};
+use Danilovl\LogViewerBundle\DTO\{
+    LogEntry
+};
+use Danilovl\LogViewerBundle\Service\{
+    ConfigurationProvider,
+    LogNotifier
+};
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Notifier\NotifierInterface;
 use Symfony\Component\Notifier\Notification\Notification;
+use Symfony\Component\Notifier\Recipient\NoRecipient;
 use Symfony\Component\Notifier\Recipient\RecipientInterface;
 
 final class LogNotifierTest extends TestCase
@@ -42,6 +48,7 @@ final class LogNotifierTest extends TestCase
             logPageAutoRefreshShowCountdown: false,
             logPageLimit: 50,
             aiButtonLevels: [],
+            aiChats: [],
             apiPrefix: '',
             encoreBuildName: null,
             sourceRemoteHosts: [],
@@ -85,7 +92,7 @@ final class LogNotifierTest extends TestCase
                 $this->callback(static function (Notification $notification) {
                     return $notification->getSubject() === '[test rule] ERROR log entry detected'
                         && str_contains($notification->getContent(), 'important message')
-                        && $notification->getChannels(new \Symfony\Component\Notifier\Recipient\NoRecipient) === ['chat/slack'];
+                        && $notification->getChannels(new NoRecipient) === ['chat/slack'];
                 }),
                 $this->isInstanceOf(RecipientInterface::class)
             );

@@ -91,6 +91,7 @@ export interface AppConfig {
   liveLogPageInterval: number | null
   liveSelectedLevels: string[]
   aiButtonLevels: string[]
+  aiChats: AiChat[]
 }
 
 export interface ServerConfig {
@@ -115,4 +116,5 @@ export interface ServerConfig {
   liveLogPageInterval: number | null
   liveSelectedLevels: string[]
   aiButtonLevels: string[]
+  aiChats: AiChat[]
 }

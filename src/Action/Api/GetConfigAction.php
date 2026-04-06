@@ -12,6 +12,14 @@ readonly class GetConfigAction
 
     public function __invoke(): JsonResponse
     {
+        $aiChats = array_map(static function (array $chat): array {
+            return [
+                'name' => $chat['name'],
+                'url' => $chat['url'],
+                'hasPrompt' => $chat['has_prompt']
+            ];
+        }, $this->configurationProvider->aiChats);
+
         $data = [
             'dashboardPageStatisticEnabled' => $this->configurationProvider->dashboardPageStatisticEnabled,
             'logPageStatisticEnabled' => $this->configurationProvider->logPageStatisticEnabled,
@@ -34,6 +42,7 @@ readonly class GetConfigAction
             'liveLogPageInterval' => $this->configurationProvider->liveLogPageInterval,
             'liveSelectedLevels' => array_map('mb_strtolower', Configuration::LEVELS),
             'aiButtonLevels' => array_map('mb_strtoupper', $this->configurationProvider->aiButtonLevels),
+            'aiChats' => $aiChats
         ];
 
         return new JsonResponse($data);

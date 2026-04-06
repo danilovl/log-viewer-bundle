@@ -5,7 +5,7 @@
 
 # LogViewerBundle
 
-This Symfony bundle provides a user-friendly interface and API for viewing application logs (Monolog). 
+This Symfony bundle provides a user-friendly interface and API for viewing application logs (Monolog).
 It supports log reading through standard PHP methods as well as a high-performance Go-based parser.
 
 ## Features
@@ -80,7 +80,7 @@ php bin/console assets:install
 4. Include the routes in `config/routes.yaml`:
 
 ```yaml
-danilovl_log_viewer:
+_danilovl_log_viewer:
     resource: "@LogViewerBundle/Resources/config/routing.yaml"
 ```
 
@@ -187,6 +187,14 @@ danilovl_log_viewer:
         # Log levels for which "Ask AI" button appears on log entries (default: [])
         # Supported: emergency, alert, critical, error, warning, notice, info, debug
         button_levels: []
+        # Custom AI chats configuration (default: presets for ChatGPT, Perplexity, Gemini, Claude, DeepSeek)
+        chats:
+            - name: 'ChatGPT'
+              url: 'https://chatgpt.com/?q={prompt}'
+              has_prompt: true
+            - name: 'Google Search'
+              url: 'https://www.google.com/search?q={prompt}'
+              has_prompt: false
 
     # Custom API prefix for bundle routes (default: '/danilovl/log-viewer/api')
     api_prefix: '/danilovl/log-viewer/api'
@@ -264,6 +272,12 @@ danilovl_log_viewer:
 
     ai:
         button_levels: [error, critical, alert, emergency]
+        chats:
+            - { name: 'ChatGPT', url: 'https://chatgpt.com/?q={prompt}', has_prompt: true }
+            - { name: 'Perplexity', url: 'https://www.perplexity.ai/?q={prompt}', has_prompt: true }
+            - { name: 'Gemini', url: 'https://gemini.google.com/app?q={prompt}', has_prompt: true }
+            - { name: 'Claude', url: 'https://claude.ai/new?q={prompt}', has_prompt: true }
+            - { name: 'DeepSeek', url: 'https://chat.deepseek.com/?q={prompt}', has_prompt: true }
 
     notifier:
         enabled: true
@@ -356,7 +370,7 @@ After installation and route configuration, the dashboard will be available at: 
 - **Localization**: Supported languages include English, Russian, Chinese, Hindi, Spanish, French, Arabic, Portuguese, Japanese, and German. You can switch the language directly in the UI.
 - **Interactive Statistics**: Real-time charts for log level distribution, channels, and error trends over time. Includes an interactive timeline selector (zoom) to focus on specific periods.
 - **Live View**: Dedicated page for watching incoming logs in real-time, perfect for debugging active issues. Features color-coded status for new entries and level filtering.
-- **Ask AI**: When viewing error logs, use the "Ask AI" button to quickly analyze the error with your favorite AI chat. You can review and edit the prompt before sending it to ensure no sensitive data is shared.
+- **Ask AI**: When viewing error logs, use the "Ask AI" button to quickly analyze the error with your favorite AI chat. You can review and edit the prompt before sending it to ensure no sensitive data is shared. The list of AI chats and their query patterns is fully configurable.
 - **Auto-Refresh**: Stay up to date with incoming logs and dashboard statistics using the built-in auto-refresh feature with countdown indicators.
 
 ### Development (Assets)
@@ -473,7 +487,7 @@ The bundle provides several events that allow you to customize its behavior with
 Dispatched when collecting data for both folder structure and flat file list.
 - **Event Class**: `Danilovl\LogViewerBundle\Event\LogViewerDataEvent`
 - **Properties**:
-  - `structure` (`list<LogViewerFolderStructure>`): The hierarchical structure of log sources.
+    - `structure` (`list<LogViewerFolderStructure>`): The hierarchical structure of log sources.
 - **Use case**: Filter out specific folders or files from the list or modify their properties (like `canDelete`, `canDownload`) globally for the entire application. Modifying the `structure` property directly affects what is shown on the dashboard and sidebar.
 
 ### 2. LogViewerEntriesEvent
@@ -483,9 +497,9 @@ Dispatched after fetching log entries for a specific file, but before they are s
 
 ### 3. LogViewerDownloadEvent & LogViewerDeleteEvent
 Dispatched before downloading or deleting a log file.
-- **Event Classes**: 
-  - `Danilovl\LogViewerBundle\Event\LogViewerDownloadEvent`
-  - `Danilovl\LogViewerBundle\Event\LogViewerDeleteEvent`
+- **Event Classes**:
+    - `Danilovl\LogViewerBundle\Event\LogViewerDownloadEvent`
+    - `Danilovl\LogViewerBundle\Event\LogViewerDeleteEvent`
 - **Use case**: Stop the propagation of the event to block the action based on custom security rules.
 
 Example of an Event Subscriber:

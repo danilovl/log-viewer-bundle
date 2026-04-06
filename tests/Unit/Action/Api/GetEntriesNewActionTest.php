@@ -8,6 +8,8 @@ use Danilovl\LogViewerBundle\Parser\Reader\{
     LogSourceManager
 };
 use Danilovl\LogViewerBundle\Service\ConfigurationProvider;
+use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\{
     RequestStack,
@@ -19,27 +21,27 @@ use Symfony\Component\Security\Core\User\UserInterface;
 
 class GetEntriesNewActionTest extends TestCase
 {
-    /** @var \PHPUnit\Framework\MockObject\MockObject&LogViewer $logViewer */
+    /** @var MockObject&LogViewer $logViewer */
     private LogViewer $logViewer;
 
-    /** @var \PHPUnit\Framework\MockObject\Stub&LogSourceManager $logSourceManager */
+    /** @var Stub&LogSourceManager $logSourceManager */
     private LogSourceManager $logSourceManager;
 
-    /** @var \PHPUnit\Framework\MockObject\Stub&RequestStack $requestStack */
+    /** @var Stub&RequestStack $requestStack */
     private RequestStack $requestStack;
 
-    /** @var \PHPUnit\Framework\MockObject\Stub&TokenStorageInterface $tokenStorage */
+    /** @var Stub&TokenStorageInterface $tokenStorage */
     private TokenStorageInterface $tokenStorage;
 
     private GetEntriesNewAction $action;
 
     protected function setUp(): void
     {
-        /** @var \PHPUnit\Framework\MockObject\MockObject&LogViewer $logViewer */
+        /** @var MockObject&LogViewer $logViewer */
         $logViewer = $this->createMock(LogViewer::class);
         $this->logViewer = $logViewer;
 
-        /** @var \PHPUnit\Framework\MockObject\Stub&LogSourceManager $logSourceManager */
+        /** @var Stub&LogSourceManager $logSourceManager */
         $logSourceManager = $this->createStub(LogSourceManager::class);
         $this->logSourceManager = $logSourceManager;
         $configurationProvider = new ConfigurationProvider(
@@ -68,17 +70,18 @@ class GetEntriesNewActionTest extends TestCase
             logPageAutoRefreshShowCountdown: false,
             logPageLimit: 50,
             aiButtonLevels: [],
+            aiChats: [],
             apiPrefix: '',
             encoreBuildName: null,
             sourceRemoteHosts: [],
             notifierEnabled: false,
             notifierRules: []
         );
-        /** @var \PHPUnit\Framework\MockObject\Stub&RequestStack $requestStack */
+        /** @var Stub&RequestStack $requestStack */
         $requestStack = $this->createStub(RequestStack::class);
         $this->requestStack = $requestStack;
 
-        /** @var \PHPUnit\Framework\MockObject\Stub&TokenStorageInterface $tokenStorage */
+        /** @var Stub&TokenStorageInterface $tokenStorage */
         $tokenStorage = $this->createStub(TokenStorageInterface::class);
         $this->tokenStorage = $tokenStorage;
 
@@ -92,21 +95,21 @@ class GetEntriesNewActionTest extends TestCase
 
     public function testInvokeWithUserIdentifier(): void
     {
-        /** @var \PHPUnit\Framework\MockObject\Stub&UserInterface $user */
+        /** @var Stub&UserInterface $user */
         $user = $this->createStub(UserInterface::class);
         $user->method('getUserIdentifier')->willReturn('test-user');
 
-        /** @var \PHPUnit\Framework\MockObject\Stub&TokenInterface $token */
+        /** @var Stub&TokenInterface $token */
         $token = $this->createStub(TokenInterface::class);
         $token->method('getUser')->willReturn($user);
 
-        /** @var \PHPUnit\Framework\MockObject\Stub&TokenStorageInterface $tokenStorage */
+        /** @var Stub&TokenStorageInterface $tokenStorage */
         $tokenStorage = $this->tokenStorage;
         $tokenStorage->method('getToken')->willReturn($token);
 
         $this->logSourceManager->method('getAllSources')->willReturn([]);
 
-        /** @var \PHPUnit\Framework\MockObject\MockObject&LogViewer $logViewer */
+        /** @var MockObject&LogViewer $logViewer */
         $logViewer = $this->logViewer;
         $logViewer
             ->expects($this->once())
@@ -120,21 +123,21 @@ class GetEntriesNewActionTest extends TestCase
 
     public function testInvokeWithSessionIdWhenNoToken(): void
     {
-        /** @var \PHPUnit\Framework\MockObject\Stub&TokenStorageInterface $tokenStorage */
+        /** @var Stub&TokenStorageInterface $tokenStorage */
         $tokenStorage = $this->tokenStorage;
         $tokenStorage->method('getToken')->willReturn(null);
 
-        /** @var \PHPUnit\Framework\MockObject\Stub&SessionInterface $session */
+        /** @var Stub&SessionInterface $session */
         $session = $this->createStub(SessionInterface::class);
         $session->method('getId')->willReturn('session-id-123');
 
-        /** @var \PHPUnit\Framework\MockObject\Stub&RequestStack $requestStack */
+        /** @var Stub&RequestStack $requestStack */
         $requestStack = $this->requestStack;
         $requestStack->method('getSession')->willReturn($session);
 
         $this->logSourceManager->method('getAllSources')->willReturn([]);
 
-        /** @var \PHPUnit\Framework\MockObject\MockObject&LogViewer $logViewer */
+        /** @var MockObject&LogViewer $logViewer */
         $logViewer = $this->logViewer;
         $logViewer->expects($this->once())
             ->method('loadWatcherPositions')
@@ -147,25 +150,25 @@ class GetEntriesNewActionTest extends TestCase
 
     public function testInvokeWithSessionIdWhenAnonymousToken(): void
     {
-        /** @var \PHPUnit\Framework\MockObject\Stub&TokenInterface $token */
+        /** @var Stub&TokenInterface $token */
         $token = $this->createStub(TokenInterface::class);
         $token->method('getUser')->willReturn(null);
 
-        /** @var \PHPUnit\Framework\MockObject\Stub&TokenStorageInterface $tokenStorage */
+        /** @var Stub&TokenStorageInterface $tokenStorage */
         $tokenStorage = $this->tokenStorage;
         $tokenStorage->method('getToken')->willReturn($token);
 
-        /** @var \PHPUnit\Framework\MockObject\Stub&SessionInterface $session */
+        /** @var Stub&SessionInterface $session */
         $session = $this->createStub(SessionInterface::class);
         $session->method('getId')->willReturn('session-id-anon');
 
-        /** @var \PHPUnit\Framework\MockObject\Stub&RequestStack $requestStack */
+        /** @var Stub&RequestStack $requestStack */
         $requestStack = $this->requestStack;
         $requestStack->method('getSession')->willReturn($session);
 
         $this->logSourceManager->method('getAllSources')->willReturn([]);
 
-        /** @var \PHPUnit\Framework\MockObject\MockObject&LogViewer $logViewer */
+        /** @var MockObject&LogViewer $logViewer */
         $logViewer = $this->logViewer;
         $logViewer->expects($this->once())
             ->method('loadWatcherPositions')
@@ -178,29 +181,29 @@ class GetEntriesNewActionTest extends TestCase
 
     public function testInvokeWithSessionIdWhenEmptyUserIdentifier(): void
     {
-        /** @var \PHPUnit\Framework\MockObject\Stub&UserInterface $user */
+        /** @var Stub&UserInterface $user */
         $user = $this->createStub(UserInterface::class);
         $user->method('getUserIdentifier')->willReturn('');
 
-        /** @var \PHPUnit\Framework\MockObject\Stub&TokenInterface $token */
+        /** @var Stub&TokenInterface $token */
         $token = $this->createStub(TokenInterface::class);
         $token->method('getUser')->willReturn($user);
 
-        /** @var \PHPUnit\Framework\MockObject\Stub&TokenStorageInterface $tokenStorage */
+        /** @var Stub&TokenStorageInterface $tokenStorage */
         $tokenStorage = $this->tokenStorage;
         $tokenStorage->method('getToken')->willReturn($token);
 
-        /** @var \PHPUnit\Framework\MockObject\Stub&SessionInterface $session */
+        /** @var Stub&SessionInterface $session */
         $session = $this->createStub(SessionInterface::class);
         $session->method('getId')->willReturn('session-id-empty');
 
-        /** @var \PHPUnit\Framework\MockObject\Stub&RequestStack $requestStack */
+        /** @var Stub&RequestStack $requestStack */
         $requestStack = $this->requestStack;
         $requestStack->method('getSession')->willReturn($session);
 
         $this->logSourceManager->method('getAllSources')->willReturn([]);
 
-        /** @var \PHPUnit\Framework\MockObject\MockObject&LogViewer $logViewer */
+        /** @var MockObject&LogViewer $logViewer */
         $logViewer = $this->logViewer;
         $logViewer->expects($this->once())
             ->method('loadWatcherPositions')

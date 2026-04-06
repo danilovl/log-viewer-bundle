@@ -8,9 +8,7 @@
       <div v-if="isOpen" :class="['ai-menu', direction]">
         <div class="ai-menu-header">{{ t('askWithPrompt') }}</div>
         <button
-          v-for="chat in aiChats.filter((c) => {
-            return c.hasPrompt
-          })"
+          v-for="chat in aiChatsWithPrompt"
           :key="chat.name"
           type="button"
           class="ai-menu-item"
@@ -23,9 +21,7 @@
         <div class="ai-menu-header">{{ t('justOpenChat') }}</div>
 
         <a
-          v-for="chat in aiChats.filter((c) => {
-            return !c.hasPrompt
-          })"
+          v-for="chat in aiChatsWithoutPrompt"
           :key="chat.name"
           :href="getAiUrl(chat)"
           target="_blank"
@@ -43,7 +39,7 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useLogStore } from '@/stores/useLogStore'
 import { useI18n } from '@/i18n/useI18n'
-import type { LogEntry } from '@/types'
+import type { LogEntry, AiChat } from '@/types'
 import IconRobot from '@/components/icons/IconRobot.vue'
 
 const props = defineProps<{
@@ -56,6 +52,22 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const store = useLogStore()
+
+const aiChats = computed(() => {
+  return store.effective.aiChats
+})
+
+const aiChatsWithPrompt = computed(() => {
+  return aiChats.value.filter((c: AiChat) => {
+    return c.hasPrompt
+  })
+})
+
+const aiChatsWithoutPrompt = computed(() => {
+  return aiChats.value.filter((c: AiChat) => {
+    return !c.hasPrompt
+  })
+})
 
 const entryKey = computed(() => {
   return props.entry.timestamp + props.entry.message + props.entry.level + (props.entry.channel || '')
@@ -74,22 +86,6 @@ const isOpen = computed({
 
 const direction = ref<'up' | 'down'>('down')
 const containerRef = ref<HTMLElement | null>(null)
-
-interface AiChat {
-  name: string
-  url: string
-  hasPrompt: boolean
-}
-
-const aiChats: AiChat[] = [
-  { name: 'ChatGPT', url: 'https://chatgpt.com/?q=', hasPrompt: true },
-  { name: 'Perplexity', url: 'https://www.perplexity.ai/search?q=', hasPrompt: true },
-  { name: 'DeepAI', url: 'https://deepai.org/chat?q=', hasPrompt: true },
-  { name: 'Grok', url: 'https://grok.com/?q=', hasPrompt: true },
-  { name: 'Gemini', url: 'https://gemini.google.com/app', hasPrompt: false },
-  { name: 'Copilot', url: 'https://www.bing.com/chat', hasPrompt: false },
-  { name: 'Claude', url: 'https://claude.ai/l', hasPrompt: false },
-]
 
 function isErrorLevel(level: string): boolean {
   if (!store.effective.aiButtonLevels || store.effective.aiButtonLevels.length === 0) {

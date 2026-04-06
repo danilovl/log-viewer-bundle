@@ -182,6 +182,7 @@ final class LogViewerExtension extends Extension
             '$logPageAutoRefreshShowCountdown' => $logPage['auto_refresh_show_countdown'],
             '$logPageLimit' => $logPage['limit'],
             '$aiButtonLevels' => $ai['button_levels'],
+            '$aiChats' => $ai['chats'],
             '$apiPrefix' => $config['api_prefix'],
             '$encoreBuildName' => $config['encore_build_name'],
             '$sourceRemoteHosts' => $remoteHosts,

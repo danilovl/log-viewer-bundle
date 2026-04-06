@@ -157,9 +157,9 @@ final class LogSourceManagerTest extends TestCase
             );
 
             $sources = $manager->getAllSources();
-            
+
             $names = array_map(static fn ($s) => $s->name, $sources);
-            
+
             $this->assertSame(['a.log', 'b.log', 'c.log', 'z_individual.log'], $names);
         } finally {
             unlink($fileA);
@@ -414,6 +414,7 @@ final class LogSourceManagerTest extends TestCase
             logPageAutoRefreshShowCountdown: false,
             logPageLimit: 50,
             aiButtonLevels: [],
+            aiChats: [],
             apiPrefix: '',
             encoreBuildName: null,
             sourceRemoteHosts: $sourceRemoteHosts,

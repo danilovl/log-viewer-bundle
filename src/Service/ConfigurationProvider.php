@@ -16,6 +16,7 @@ final readonly class ConfigurationProvider
      * @param array<string, string> $parserOverrides
      * @param RemoteHost[] $sourceRemoteHosts
      * @param string[] $aiButtonLevels
+     * @param array<int, array{name: string, url: string, has_prompt: bool}> $aiChats
      * @param array<int, array{name: string, levels: string[], contains: string[], channels: string[]}> $notifierRules
      */
     public function __construct(
@@ -44,6 +45,7 @@ final readonly class ConfigurationProvider
         public bool $logPageAutoRefreshShowCountdown,
         public int $logPageLimit,
         public array $aiButtonLevels,
+        public array $aiChats,
         public string $apiPrefix,
         public ?string $encoreBuildName,
         public array $sourceRemoteHosts,

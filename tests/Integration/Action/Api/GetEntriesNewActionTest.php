@@ -74,7 +74,7 @@ class GetEntriesNewActionTest extends KernelTest
     {
         $response = ($this->action)();
         $this->assertEquals(200, $response->getStatusCode());
-        
+
         $content = (string) $response->getContent();
         /** @var array{entries: array<int, mixed>} $data */
         $data = json_decode($content, true);
