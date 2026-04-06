@@ -1,0 +1,12 @@
+{
+  "entrypoints": {
+    "log_viewer": {
+      "css": [
+        "/bundles/logviewer/build/log_viewer.40bbb9f7.css"
+      ],
+      "js": [
+        "/bundles/logviewer/build/log_viewer.804edaa7.js"
+      ]
+    }
+  }
+}

@@ -6,5 +6,4 @@ composer.lock
 /var/
 /vendor/
 /.env
-/src/Resources/public/build
 .junie/memory
