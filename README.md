@@ -1,3 +1,8 @@
+[![phpunit](https://github.com/danilovl/log-viewer-bundle/actions/workflows/phpunit.yml/badge.svg)](https://github.com/danilovl/log-viewer-bundle/actions/workflows/phpunit.yml)
+[![downloads](https://img.shields.io/packagist/dt/danilovl/log-viewer-bundle)](https://packagist.org/packages/danilovl/log-viewer-bundle)
+[![latest Stable Version](https://img.shields.io/packagist/v/danilovl/log-viewer-bundle)](https://packagist.org/packages/danilovl/log-viewer-bundle)
+[![license](https://img.shields.io/packagist/l/danilovl/log-viewer-bundle)](https://packagist.org/packages/danilovl/log-viewer-bundle)
+
 # LogViewerBundle
 
 This Symfony bundle provides a user-friendly interface and API for viewing application logs (Monolog). 
