@@ -13,4 +13,6 @@ interface LogInterfaceParser extends LogGoParserNameInterface
     public function supports(?string $parserType): bool;
 
     public function getPattern(): string;
+
+    public function getDateFormat(): string;
 }

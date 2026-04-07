@@ -84,8 +84,15 @@ function resetAllFiles(): void {
 async function performSearch(): Promise<void> {
   const hasLevel = !!store.filters.filterLevel
   const hasSearch = !!store.filters.filterSearch
+  const hasDateFrom = !!store.filters.filterDateFrom
+  const hasDateTo = !!store.filters.filterDateTo
+  const hasChannel = !!store.filters.filterChannel
 
-  if (store.isStructureLoaded && store.source.ids.length > 0 && (hasLevel || hasSearch)) {
+  if (
+    store.isStructureLoaded &&
+    store.source.ids.length > 0 &&
+    (hasLevel || hasSearch || hasDateFrom || hasDateTo || hasChannel)
+  ) {
     await store.loadGlobalSearchEntries()
   } else if (store.isStructureLoaded) {
     store.entries.data = []

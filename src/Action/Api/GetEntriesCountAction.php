@@ -36,6 +36,8 @@ readonly class GetEntriesCountAction
             level: $query->level,
             channel: $query->channel,
             search: $query->search,
+            dateFrom: $query->dateFrom,
+            dateTo: $query->dateTo,
             searchRegex: $query->searchRegex,
             searchCaseSensitive: $query->searchCaseSensitive
         );

@@ -8,7 +8,7 @@ use Danilovl\LogViewerBundle\Util\DateNormalizer;
 
 final class NginxAccessParser implements LogInterfaceParser
 {
-    private const string PATTERN = '~^(?P<remote_addr>.*?) - (?P<remote_user>.*?) \[(?P<timestamp>.*?)\] "(?P<request>.*?)" (?P<status>\d+) (?P<body_bytes_sent>\d+) "(?P<http_referer>.*?)" "(?P<http_user_agent>.*?)"$~';
+    private const string PATTERN = '~^(?P<remote_addr>.*?) - (?P<remote_user>.*?) \[(?P<timestamp>.*?)\] "(?P<request>.*?)" (?P<status>\d+) (?P<body_bytes_sent>.*?) "(?P<http_referer>.*?)" "(?P<http_user_agent>.*?)"~';
 
     public function parse(string $line, string $filename): LogEntry
     {
@@ -58,6 +58,11 @@ final class NginxAccessParser implements LogInterfaceParser
     public function getPattern(): string
     {
         return self::PATTERN;
+    }
+
+    public function getDateFormat(): string
+    {
+        return 'd/M/Y:H:i:s O';
     }
 
     public function getGoParserName(?string $parserType): string

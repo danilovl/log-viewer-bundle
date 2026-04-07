@@ -80,6 +80,58 @@ final class GoLogClientTest extends TestCase
         }
     }
 
+    public function testGetLogsWithDateFilters(): void
+    {
+        $binaryPath = $this->createFakeDateFilterBinary();
+
+        try {
+            $client = $this->createClientWithBinary($binaryPath);
+            $filters = LogViewerFilters::fromQueryParams(null, null, null, '2026-03-29 09:00:00', '2026-03-29 10:00:00');
+            $client->getLogs(__FILE__, 'monolog', filters: $filters);
+        } finally {
+            @unlink($binaryPath);
+        }
+    }
+
+    private function createFakeDateFilterBinary(): string
+    {
+        $tempFile = tempnam(sys_get_temp_dir(), 'go-parser-date-');
+        self::assertNotFalse($tempFile);
+
+        $script = <<<'PHP'
+#!/usr/bin/env php
+<?php
+$dateFrom = '';
+$dateTo = '';
+
+for ($i = 1; $i < count($argv); $i++) {
+    if ($argv[$i] === '--date-from' && isset($argv[$i + 1])) {
+        $dateFrom = $argv[$i + 1];
+    }
+    if ($argv[$i] === '--date-to' && isset($argv[$i + 1])) {
+        $dateTo = $argv[$i + 1];
+    }
+}
+
+if ($dateFrom !== '2026-03-29 09:00:00') {
+    fwrite(STDERR, sprintf("unexpected date-from: %s\n", $dateFrom));
+    exit(1);
+}
+
+if ($dateTo !== '2026-03-29 10:00:00') {
+    fwrite(STDERR, sprintf("unexpected date-to: %s\n", $dateTo));
+    exit(1);
+}
+
+echo '{"timestamp":"2026-03-29T09:44:14.945778+00:00","level":"DEBUG","channel":"app","message":"test message","file":"test.log","context":{},"extra":{},"offset":0,"line":1}';
+PHP;
+        $script = str_replace("\r\n", "\n", $script);
+        file_put_contents($tempFile, $script);
+        chmod($tempFile, 0o755);
+
+        return $tempFile;
+    }
+
     private function createFakeLogsBinary(): string
     {
         $tempFile = tempnam(sys_get_temp_dir(), 'go-parser-logs-');

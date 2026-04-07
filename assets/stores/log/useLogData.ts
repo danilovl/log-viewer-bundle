@@ -33,6 +33,8 @@ interface FiltersState {
   filterLevel: string
   filterChannel: string
   filterSearch: string
+  filterDateFrom: string
+  filterDateTo: string
   filterSearchRegex: boolean
   filterSearchCaseSensitive: boolean
   filterBookmarks: boolean
@@ -133,6 +135,8 @@ export function useLogData(options: LogDataOptions) {
         filters.filterLevel,
         filters.filterChannel,
         filters.filterSearch,
+        filters.filterDateFrom,
+        filters.filterDateTo,
         filters.filterSearchRegex,
         filters.filterSearchCaseSensitive,
       )
@@ -201,6 +205,8 @@ export function useLogData(options: LogDataOptions) {
         filters.filterLevel,
         filters.filterChannel,
         filters.filterSearch,
+        filters.filterDateFrom,
+        filters.filterDateTo,
         filters.filterSearchRegex,
         filters.filterSearchCaseSensitive,
       )
@@ -259,18 +265,6 @@ export function useLogData(options: LogDataOptions) {
     filters.syncFiltersToUrl()
 
     try {
-      if (withStats || (!pagination.isCountSlow && !isPagination)) {
-        if (logPageStatisticEnabled.value) {
-          loadLogStats()
-        } else {
-          loadCount()
-        }
-
-        if (requestId !== currentEntriesRequest) {
-          return
-        }
-      }
-
       const offset = (pagination.currentPage - 1) * pagination.limit
       const result = await fetchLogEntries(
         source.id,
@@ -280,6 +274,8 @@ export function useLogData(options: LogDataOptions) {
         filters.filterLevel,
         filters.filterChannel,
         filters.filterSearch,
+        filters.filterDateFrom,
+        filters.filterDateTo,
         filters.filterSearchRegex,
         filters.filterSearchCaseSensitive,
       )
@@ -296,6 +292,19 @@ export function useLogData(options: LogDataOptions) {
       source.size = result.size || 0
       source.canDelete = result.canDelete
       source.canDownload = result.canDownload
+
+      if (withStats || (!pagination.isCountSlow && !isPagination)) {
+        if (logEntries.value.length > 0) {
+          if (logPageStatisticEnabled.value) {
+            loadLogStats()
+          } else {
+            loadCount()
+          }
+        } else {
+          pagination.totalEntries = 0
+          logStats.value = { total: 0, size: result.size, levels: {}, channels: {} }
+        }
+      }
 
       if (!logStats.value) {
         logStats.value = { total: 0, size: result.size, levels: {}, channels: {} }
@@ -367,6 +376,8 @@ export function useLogData(options: LogDataOptions) {
         filters.filterLevel,
         filters.filterChannel,
         filters.filterSearch,
+        filters.filterDateFrom,
+        filters.filterDateTo,
         filters.filterSearchRegex,
         filters.filterSearchCaseSensitive,
       )

@@ -1,5 +1,5 @@
 import { ref } from 'vue'
-import type { AppConfig, ServerConfig, AiChat } from '@/types'
+import type { AppConfig, ServerConfig, AiChat, RegexTemplate } from '@/types'
 import { fetchConfig } from '@/services/api'
 import { logLevels } from '@/utils/constants'
 
@@ -21,6 +21,7 @@ export function useLogConfig() {
   const liveSelectedLevels = ref<string[]>([...logLevels])
   const aiButtonLevels = ref<string[]>([])
   const aiChats = ref<AiChat[]>([])
+  const regexTemplates = ref<RegexTemplate[]>([])
 
   async function loadConfig(): Promise<void> {
     const response: ServerConfig = await fetchConfig()
@@ -40,6 +41,7 @@ export function useLogConfig() {
     liveSelectedLevels.value = response.liveSelectedLevels
     aiButtonLevels.value = response.aiButtonLevels
     aiChats.value = response.aiChats
+    regexTemplates.value = response.regexTemplates
   }
 
   function initFromConfig(config: AppConfig): void {
@@ -58,6 +60,7 @@ export function useLogConfig() {
     liveSelectedLevels.value = config.liveSelectedLevels
     aiButtonLevels.value = config.aiButtonLevels
     aiChats.value = config.aiChats
+    regexTemplates.value = config.regexTemplates || []
   }
 
   return {
@@ -78,6 +81,7 @@ export function useLogConfig() {
     liveSelectedLevels,
     aiButtonLevels,
     aiChats,
+    regexTemplates,
     loadConfig,
     initFromConfig,
   }

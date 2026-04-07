@@ -51,6 +51,11 @@ final class PhpErrorParser implements LogInterfaceParser
         return self::PATTERN;
     }
 
+    public function getDateFormat(): string
+    {
+        return 'Y-m-d\TH:i:s.uP';
+    }
+
     public function getGoParserName(?string $parserType): string
     {
         return 'php_error';

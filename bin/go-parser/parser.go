@@ -13,7 +13,7 @@ import (
 
 var (
 	lastLayout atomic.Value
-	timestampLayouts = [...]string{
+	timestampLayouts = []string{
 		time.RFC3339Nano,
 		"2006-01-02T15:04:05.000000Z07:00",
 		"2006-01-02 15:04:05",
@@ -21,7 +21,7 @@ var (
 		time.RFC3339,
 		"02/Jan/2006:15:04:05 -0700",
 		"2006-01-02T15:04:05.000000Z",
-		"2015/01/02 15:04:05",
+		"2006/01/02 15:04:05",
 	}
 	entryPool = sync.Pool{
 		New: func() interface{} {
@@ -155,29 +155,41 @@ func parseTimestamp(ts string) time.Time {
 		return time.Time{}
 	}
 	if len(ts) > 2 && ts[0] == '[' && ts[len(ts)-1] == ']' {
-		ts = ts[1:len(ts)-1]
+		ts = ts[1 : len(ts)-1]
 	}
 
+	var t time.Time
+	var err error
+
 	if l, ok := lastLayout.Load().(string); ok {
-		if t, err := time.Parse(l, ts); err == nil {
-			return t
+		if t, err = time.Parse(l, ts); err == nil {
+			goto checkYear
 		}
 	}
 
 	for _, l := range timestampLayouts {
-		if t, err := time.Parse(l, ts); err == nil {
+		if t, err = time.Parse(l, ts); err == nil {
 			lastLayout.Store(l)
-			return t
+			goto checkYear
 		}
 	}
+	if t, err = time.Parse("2/Jan/2006:15:04:05 -0700", ts); err == nil {
+		goto checkYear
+	}
+	if t, err = time.Parse("2006-01-02T15:04:05", ts); err == nil {
+		goto checkYear
+	}
 	return time.Time{}
+
+checkYear:
+	if t.Year() <= 1 {
+		now := time.Now()
+		t = time.Date(now.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second(), t.Nanosecond(), t.Location())
+	}
+	return t
 }
 
 func parseHourBucket(ts string) string {
-	if len(ts) >= 13 {
-		return ts[:13]
-	}
-
 	t := parseTimestamp(ts)
 	if t.IsZero() {
 		return ""
@@ -309,6 +321,22 @@ func containsSearchValue(value, searchValue string, isRegex, isCaseSensitive, se
 		return containsFoldASCIIString(value, searchValue)
 	}
 	return strings.Contains(strings.ToLower(value), searchValue)
+}
+
+func containsSearchValueBytes(value []byte, searchValue string, isRegex, isCaseSensitive, searchASCII bool, re *regexp.Regexp) bool {
+	if searchValue == "" {
+		return true
+	}
+	if isRegex && re != nil {
+		return re.Match(value)
+	}
+	if isCaseSensitive {
+		return bytes.Contains(value, []byte(searchValue))
+	}
+	if searchASCII {
+		return containsFoldASCIIBytes(value, []byte(searchValue))
+	}
+	return bytes.Contains(bytes.ToLower(value), []byte(searchValue))
 }
 
 func unmarshalLenientJSON(data []byte, v interface{}) error {

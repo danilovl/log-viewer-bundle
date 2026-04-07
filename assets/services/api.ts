@@ -79,6 +79,8 @@ export async function fetchLogStats(
   level: string,
   channel: string,
   search: string,
+  dateFrom: string,
+  dateTo: string,
   searchRegex: boolean,
   searchCaseSensitive: boolean,
 ): Promise<{
@@ -108,6 +110,12 @@ export async function fetchLogStats(
   if (searchCaseSensitive) {
     params.searchCaseSensitive = '1'
   }
+  if (dateFrom) {
+    params.dateFrom = dateFrom
+  }
+  if (dateTo) {
+    params.dateTo = dateTo
+  }
 
   const response = await axios.get(`${apiPrefix}/stats`, { params })
   const duration = Math.round(performance.now() - startTime)
@@ -131,6 +139,8 @@ export async function fetchLogEntries(
   level: string,
   channel: string,
   search: string,
+  dateFrom: string,
+  dateTo: string,
   searchRegex: boolean,
   searchCaseSensitive: boolean,
 ): Promise<{
@@ -166,6 +176,12 @@ export async function fetchLogEntries(
   if (searchCaseSensitive) {
     params.searchCaseSensitive = '1'
   }
+  if (dateFrom) {
+    params.dateFrom = dateFrom
+  }
+  if (dateTo) {
+    params.dateTo = dateTo
+  }
 
   const response = await axios.get(`${apiPrefix}/entries`, { params })
   const duration = Math.round(performance.now() - startTime)
@@ -187,6 +203,8 @@ export async function fetchLogEntriesCount(
   level: string,
   channel: string,
   search: string,
+  dateFrom: string,
+  dateTo: string,
   searchRegex: boolean,
   searchCaseSensitive: boolean,
 ): Promise<{
@@ -210,6 +228,12 @@ export async function fetchLogEntriesCount(
   }
   if (searchCaseSensitive) {
     params.searchCaseSensitive = '1'
+  }
+  if (dateFrom) {
+    params.dateFrom = dateFrom
+  }
+  if (dateTo) {
+    params.dateTo = dateTo
   }
 
   const response = await axios.get(`${apiPrefix}/entries-count`, { params })
@@ -269,6 +293,8 @@ export async function fetchGlobalSearch(
   level: string,
   channel: string,
   search: string,
+  dateFrom: string,
+  dateTo: string,
   searchRegex: boolean,
   searchCaseSensitive: boolean,
 ): Promise<{
@@ -298,6 +324,12 @@ export async function fetchGlobalSearch(
   }
   if (searchCaseSensitive) {
     params.searchCaseSensitive = '1'
+  }
+  if (dateFrom) {
+    params.dateFrom = dateFrom
+  }
+  if (dateTo) {
+    params.dateTo = dateTo
   }
 
   const response = await axios.get(`${apiPrefix}/global-search`, { params })

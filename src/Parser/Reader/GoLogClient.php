@@ -13,26 +13,11 @@ use Danilovl\LogViewerBundle\Service\ConfigurationProvider;
 use RuntimeException;
 use Symfony\Component\Process\Process;
 
-class GoLogClient
+readonly class GoLogClient
 {
-    private const array KNOWN_PARSERS = [
-        'monolog',
-        'nginx_access',
-        'nginx_error',
-        'apache_access',
-        'syslog',
-        'auth',
-        'kern',
-        'php_fpm',
-        'php_error',
-        'supervisord',
-        'mysql',
-        'json'
-    ];
-
     public function __construct(
-        private readonly ConfigurationProvider $configurationProvider,
-        private readonly CompositeLogParser $compositeLogParser
+        private ConfigurationProvider $configurationProvider,
+        private CompositeLogParser $compositeLogParser
     ) {}
 
     /**
@@ -53,66 +38,25 @@ class GoLogClient
         }
 
         $binaryPath = $this->getBinaryPath();
-        $cmd = [
-            $binaryPath,
-            '--file', $filePath,
-            '--limit', (string) $limit,
-            '--offset', (string) $offset,
-            '--sort', $sortDir,
-        ];
+        $arguments = new GoLogArguments(
+            binaryPath: $binaryPath,
+            filePath: $filePath,
+            configurationProvider: $this->configurationProvider,
+            compositeLogParser: $this->compositeLogParser
+        );
 
-        if ($hostName !== null) {
-            $this->addHostFlags($cmd, $hostName);
-        }
+        $arguments
+            ->addPagination(
+                limit: $limit,
+                offset: $offset,
+                cursor: $cursor,
+                sortDir: $sortDir
+            )
+            ->addHost($hostName)
+            ->addParser($parserType)
+            ->addFilters($filters);
 
-        $parserName = $this->compositeLogParser->getParserName($parserType);
-        if ($parserName !== null && in_array($parserName, self::KNOWN_PARSERS, true)) {
-            $cmd[] = '--parser';
-            $cmd[] = $parserName;
-        }
-
-        $pattern = $this->compositeLogParser->getPatternGo($parserType);
-        if ($pattern !== null) {
-            $cmd[] = '--pattern';
-            $cmd[] = $pattern;
-        }
-
-        if ($cursor !== null) {
-            $cmd[] = '--cursor';
-            $cmd[] = $cursor;
-        }
-
-        if ($filters !== null) {
-            if ($filters->level !== null) {
-                $cmd[] = '--level';
-                $cmd[] = $filters->level;
-            }
-
-            if (!empty($filters->levels)) {
-                $cmd[] = '--levels';
-                $cmd[] = implode(',', $filters->levels);
-            }
-
-            if ($filters->channel !== null) {
-                $cmd[] = '--channel';
-                $cmd[] = $filters->channel;
-            }
-
-            if ($filters->search !== null) {
-                $cmd[] = '--search';
-                $cmd[] = $filters->search;
-
-                if ($filters->searchRegex) {
-                    $cmd[] = '--search-regex';
-                }
-
-                if ($filters->searchCaseSensitive) {
-                    $cmd[] = '--search-case-sensitive';
-                }
-            }
-        }
-
-        $process = new Process($cmd);
+        $process = new Process($arguments->toArray());
         $process->setTimeout(30);
         $process->run();
 
@@ -127,37 +71,7 @@ class GoLogClient
         $lines = explode("\n", $output);
         $filteredLines = array_values(array_filter($lines));
 
-        $logs = array_map(static function (string $line): LogEntry {
-            $decoded = json_decode(mb_trim($line), true);
-            $data = is_array($decoded) ? $decoded : [];
-
-            $timestamp = $data['timestamp'] ?? '';
-            $level = $data['level'] ?? '';
-            $channel = $data['channel'] ?? '';
-            $message = $data['message'] ?? '';
-            $file = $data['file'] ?? '';
-            $sql = $data['sql'] ?? null;
-
-            /** @var array<string, mixed>|null $parameters */
-            $parameters = $data['parameters'] ?? null;
-
-            /** @var array<string, mixed>|null $context */
-            $context = $data['context'] ?? null;
-
-            return new LogEntry(
-                timestamp: is_scalar($timestamp) ? (string) $timestamp : '',
-                level: is_scalar($level) ? (string) $level : '',
-                channel: is_scalar($channel) ? (string) $channel : '',
-                message: is_scalar($message) ? (string) $message : '',
-                file: is_scalar($file) ? (string) $file : '',
-                normalizedTimestamp: DateNormalizer::normalize(is_scalar($timestamp) ? (string) $timestamp : ''),
-                sql: is_scalar($sql) ? (string) $sql : null,
-                parameters: is_array($parameters) ? $parameters : null,
-                context: is_array($context) ? $context : null,
-            );
-        }, $filteredLines);
-
-        return $logs;
+        return array_map($this->mapLogEntry(...), $filteredLines);
     }
 
     public function getStats(
@@ -176,62 +90,21 @@ class GoLogClient
         }
 
         $binaryPath = $this->getBinaryPath();
-
         $hasFilters = $filters !== null && $filters->hasFilters;
 
-        $cmd = [
-            $binaryPath,
-            '--file', $filePath,
-            '--mode', $hasFilters ? 'stat_filter' : 'stats',
-        ];
+        $arguments = new GoLogArguments(
+            binaryPath: $binaryPath,
+            filePath: $filePath,
+            configurationProvider: $this->configurationProvider,
+            compositeLogParser: $this->compositeLogParser
+        );
 
-        if ($hostName !== null) {
-            $this->addHostFlags($cmd, $hostName);
-        }
+        $arguments->addMode($hasFilters ? 'stat_filter' : 'stats')
+            ->addHost($hostName)
+            ->addParser($parserType)
+            ->addFilters($filters);
 
-        $parserName = $this->compositeLogParser->getParserName($parserType);
-        if ($parserName !== null && in_array($parserName, self::KNOWN_PARSERS, true)) {
-            $cmd[] = '--parser';
-            $cmd[] = $parserName;
-        }
-
-        $pattern = $this->compositeLogParser->getPatternGo($parserType);
-        if ($pattern !== null) {
-            $cmd[] = '--pattern';
-            $cmd[] = $pattern;
-        }
-
-        if ($filters !== null) {
-            if ($filters->level !== null) {
-                $cmd[] = '--level';
-                $cmd[] = $filters->level;
-            }
-
-            if (!empty($filters->levels)) {
-                $cmd[] = '--levels';
-                $cmd[] = implode(',', $filters->levels);
-            }
-
-            if ($filters->channel !== null) {
-                $cmd[] = '--channel';
-                $cmd[] = $filters->channel;
-            }
-
-            if ($filters->search !== null) {
-                $cmd[] = '--search';
-                $cmd[] = $filters->search;
-
-                if ($filters->searchRegex) {
-                    $cmd[] = '--search-regex';
-                }
-
-                if ($filters->searchCaseSensitive) {
-                    $cmd[] = '--search-case-sensitive';
-                }
-            }
-        }
-
-        $process = new Process($cmd);
+        $process = new Process($arguments->toArray());
         $process->setTimeout(60);
         $process->run();
 
@@ -284,60 +157,20 @@ class GoLogClient
         }
 
         $binaryPath = $this->getBinaryPath();
+        $arguments = new GoLogArguments(
+            binaryPath: $binaryPath,
+            filePath: $filePath,
+            configurationProvider: $this->configurationProvider,
+            compositeLogParser: $this->compositeLogParser
+        );
 
-        $cmd = [
-            $binaryPath,
-            '--file', $filePath,
-            '--mode', 'count',
-        ];
+        $arguments
+            ->addMode('count')
+            ->addHost($hostName)
+            ->addParser($parserType)
+            ->addFilters($filters);
 
-        if ($hostName !== null) {
-            $this->addHostFlags($cmd, $hostName);
-        }
-
-        $parserName = $this->compositeLogParser->getParserName($parserType);
-        if ($parserName !== null && in_array($parserName, self::KNOWN_PARSERS, true)) {
-            $cmd[] = '--parser';
-            $cmd[] = $parserName;
-        }
-
-        $pattern = $this->compositeLogParser->getPatternGo($parserType);
-        if ($pattern !== null) {
-            $cmd[] = '--pattern';
-            $cmd[] = $pattern;
-        }
-
-        if ($filters !== null) {
-            if ($filters->level !== null) {
-                $cmd[] = '--level';
-                $cmd[] = $filters->level;
-            }
-
-            if (!empty($filters->levels)) {
-                $cmd[] = '--levels';
-                $cmd[] = implode(',', $filters->levels);
-            }
-
-            if ($filters->channel !== null) {
-                $cmd[] = '--channel';
-                $cmd[] = $filters->channel;
-            }
-
-            if ($filters->search !== null) {
-                $cmd[] = '--search';
-                $cmd[] = $filters->search;
-
-                if ($filters->searchRegex) {
-                    $cmd[] = '--search-regex';
-                }
-
-                if ($filters->searchCaseSensitive) {
-                    $cmd[] = '--search-case-sensitive';
-                }
-            }
-        }
-
-        $process = new Process($cmd);
+        $process = new Process($arguments->toArray());
         $process->setTimeout(60);
         $process->run();
 
@@ -368,17 +201,17 @@ class GoLogClient
         }
 
         $binaryPath = $this->getBinaryPath();
-        $cmd = [
-            $binaryPath,
-            '--file', $filePath,
-            '--mode', 'identify'
-        ];
+        $arguments = new GoLogArguments(
+            binaryPath: $binaryPath,
+            filePath: $filePath,
+            configurationProvider: $this->configurationProvider,
+            compositeLogParser: $this->compositeLogParser
+        );
+        $arguments
+            ->addMode('identify')
+            ->addHost($hostName);
 
-        if ($hostName !== null) {
-            $this->addHostFlags($cmd, $hostName);
-        }
-
-        $process = new Process($cmd);
+        $process = new Process($arguments->toArray());
         $process->setTimeout(30);
         $process->run();
 
@@ -395,37 +228,46 @@ class GoLogClient
         return $this->compositeLogParser->getParserNameByGoName($goParserName);
     }
 
-    /**
-     * @param string[] $cmd
-     */
-    private function addHostFlags(array &$cmd, string $hostName): void
+    private function mapLogEntry(string $line): LogEntry
     {
-        $hostConfig = $this->configurationProvider->findRemoteHost($hostName);
-        if ($hostConfig === null) {
-            return;
-        }
+        $trimmedLine = mb_trim($line);
+        $decoded = json_decode($trimmedLine, true);
+        $data = is_array($decoded) ? $decoded : [];
 
-        $cmd[] = '--host';
-        $cmd[] = $hostConfig->host;
-        $cmd[] = '--port';
-        $cmd[] = (string) $hostConfig->port;
-        $cmd[] = '--host-type';
-        $cmd[] = $hostConfig->type;
+        $timestamp = $data['timestamp'] ?? '';
+        $level = $data['level'] ?? '';
+        $channel = $data['channel'] ?? '';
+        $message = $data['message'] ?? '';
+        $file = $data['file'] ?? '';
+        $sql = $data['sql'] ?? null;
 
-        if ($hostConfig->user !== null) {
-            $cmd[] = '--user';
-            $cmd[] = $hostConfig->user;
-        }
+        /** @var array<string, mixed>|null $parameters */
+        $parameters = $data['parameters'] ?? null;
 
-        if ($hostConfig->password !== null) {
-            $cmd[] = '--password';
-            $cmd[] = $hostConfig->password;
-        }
+        /** @var array<string, mixed>|null $context */
+        $context = $data['context'] ?? null;
 
-        if ($hostConfig->sshKey !== null) {
-            $cmd[] = '--ssh-key';
-            $cmd[] = $hostConfig->sshKey;
-        }
+        $timestampString = is_scalar($timestamp) ? (string) $timestamp : '';
+        $levelString = is_scalar($level) ? (string) $level : '';
+        $channelString = is_scalar($channel) ? (string) $channel : '';
+        $messageString = is_scalar($message) ? (string) $message : '';
+        $fileString = is_scalar($file) ? (string) $file : '';
+        $normalizedTimestamp = DateNormalizer::normalize($timestampString);
+        $sqlString = is_scalar($sql) ? (string) $sql : null;
+        $parametersArray = is_array($parameters) ? $parameters : null;
+        $contextArray = is_array($context) ? $context : null;
+
+        return new LogEntry(
+            timestamp: $timestampString,
+            level: $levelString,
+            channel: $channelString,
+            message: $messageString,
+            file: $fileString,
+            normalizedTimestamp: $normalizedTimestamp,
+            sql: $sqlString,
+            parameters: $parametersArray,
+            context: $contextArray,
+        );
     }
 
     private function getBinaryPath(): string

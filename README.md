@@ -12,11 +12,12 @@ It supports log reading through standard PHP methods as well as a high-performan
 
 - **Advanced Search**: Support for regular expressions (Regex), case-sensitivity toggles, and search term highlighting in the search bar.
 - **Global Search**: Search across multiple log files at once from a dedicated page with combined and time-sorted results.
+- **Regex Templates**: Predefined collection of popular regular expressions for common log patterns, with specific implementations for PHP/Symfony and Go.
 - **Live Multi-source View**: Select multiple log files in the Live Log view via a modal to monitor them simultaneously in a single real-time stream.
 - **Zen Mode**: Fullscreen distraction-free mode that hides the sidebar and header, perfect for monitoring logs on a dedicated display.
 - **Bookmarks**: Quickly mark specific log entries with a "star" and filter to see only your bookmarked items. Bookmarks are persisted in your browser's local storage.
 - **Modern Dashboard**: Vue 3 based Single Page Application (SPA) for a smooth user experience.
-- **Log Viewing**: Advanced filtering, search, and pagination for historical logs.
+- **Log Viewing**: Advanced filtering, search (including Regex and Case-sensitivity), and pagination for historical logs.
 - **Live Log View**: Real-time log streaming with automatic updates and level-based filtering.
 - **Multiple Parsers**: Support for Monolog, Nginx, Apache, PHP, Syslog, and more.
 - **High Performance**: Optional Go-based parser for extremely fast processing of large log files.
@@ -348,16 +349,33 @@ Refer to the official [Symfony Notifier documentation](https://symfony.com/doc/c
 The following parsers are available by default:
 - `monolog` - Standard Monolog format (usually auto-detected for Symfony logs).
 - `json` - Logs in JSON format (one object per line).
-- `nginx_access` - Nginx access logs.
+- `nginx` - Nginx access logs.
 - `nginx_error` - Nginx error logs.
-- `apache_access` - Apache access logs.
-- `php_error` - PHP error logs.
+- `apache` - Apache access logs.
+- `php` - PHP error logs.
 - `mysql` - MySQL error logs.
 - `syslog` - Traditional Syslog.
-- `modern_syslog` - Modern Syslog format.
+- `syslog-modern` - Modern Syslog format.
 - `doctrine` - Doctrine DBAL logs.
 - `access` - Generic access logs.
 - `supervisord` - Supervisord logs.
+
+## Regex Templates
+
+The bundle includes a curated list of popular regular expression templates to help you find common issues quickly. Each template provides optimized patterns for both PHP and Go (if the Go parser is enabled).
+
+Available template categories:
+- **Application**: Symfony Deprecation, Symfony Security, Symfony Messenger, Doctrine Query Time, PHP Syntax Error, PHP Warning, PHP Notice, Twig Template Error.
+- **Errors**: Exception, Fatal Error, SQL Error, Stack Trace, Stack Frame.
+- **Network**: IPv4, IPv6, IP with Port, URL, Email, HTTP Referrer, User Agent, Upstream Address.
+- **HTTP/Web**: HTTP Method, Status Error, SQL Query, Framework Route, HTTP Version.
+- **System**: Process ID (PID), Supervisor Status, Cron Task, Kernel Message, Log Channel, Memory Usage, Runtime Version.
+- **Identifiers**: Request ID, User ID, UUID.
+- **Time/Date**: ISO 8601, Brackets, Unix Timestamp, Time Duration.
+- **General**: JSON Block, Quoted String, File Path.
+- **Sensitive**: Credit Card (Masked), Phone Number.
+
+You can select these templates from the dropdown menu in the search bar.
 
 ## Usage (Dashboard)
 
@@ -423,6 +441,10 @@ Query parameters:
 - `level` (string): Filter by log level.
 - `channel` (string): Filter by channel.
 - `search` (string): Search text.
+- `searchRegex` (bool): Enable regex search.
+- `searchCaseSensitive` (bool): Enable case-sensitive search.
+- `dateFrom` (string): Filter by start date.
+- `dateTo` (string): Filter by end date.
 
 `GET /entries/new`
 Returns only new log entries across specified sources (used for real-time updates).
@@ -450,6 +472,10 @@ Query parameters:
 - `level` (string): Filter by log level.
 - `channel` (string): Filter by channel.
 - `search` (string): Search text.
+- `searchRegex` (bool): Enable regex search.
+- `searchCaseSensitive` (bool): Enable case-sensitive search.
+- `dateFrom` (string): Filter by start date.
+- `dateTo` (string): Filter by end date.
 
 Response: `{ "totalCount": 0 }`
 
@@ -461,6 +487,10 @@ Query parameters:
 - `level` (string): Filter by log level.
 - `channel` (string): Filter by channel.
 - `search` (string): Search text.
+- `searchRegex` (bool): Enable regex search.
+- `searchCaseSensitive` (bool): Enable case-sensitive search.
+- `dateFrom` (string): Filter by start date.
+- `dateTo` (string): Filter by end date.
 - `timelineFormat` (string): Format for timeline (minute, hour, day).
 
 `GET /dashboard-stats`

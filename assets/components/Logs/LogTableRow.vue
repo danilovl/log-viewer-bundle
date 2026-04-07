@@ -33,7 +33,11 @@
     <td class="col-level">
       <span :class="'level-badge level-' + entry.level.toLowerCase()">{{ entry.level }}</span>
     </td>
-    <td v-if="logPageStatisticEnabled" class="col-channel text-muted">{{ entry.channel }}</td>
+    <td v-if="logPageStatisticEnabled" class="col-channel text-muted">
+      <div
+        v-html="highlight(entry.channel, store.filters.filterSearchHighlight ? store.filters.filterSearch : '')"
+      ></div>
+    </td>
     <td class="col-message">
       <LogMessage
         :message="entry.message"
@@ -42,7 +46,9 @@
       />
       <AskAi :entry="entry" @open-editor="onOpenAiEditor" />
       <div v-if="entry.sql" class="sql-block">
-        <code>{{ entry.sql }}</code>
+        <code
+          v-html="highlight(entry.sql, store.filters.filterSearchHighlight ? store.filters.filterSearch : '')"
+        ></code>
       </div>
       <LogContext :context="entry.context" />
     </td>
@@ -54,6 +60,7 @@ import type { LogEntry, AiChat } from '@/types'
 import { parseTimestamp } from '@/utils/format'
 import { useLogBookmarks } from '@/stores/log/useLogBookmarks'
 import { useLogStore } from '@/stores/useLogStore'
+import { useHighlight } from '@/composables/useHighlight'
 import LogMessage from '@/components/Logs/LogMessage.vue'
 import LogContext from '@/components/Logs/LogContext.vue'
 import AskAi from '@/components/Logs/AskAi.vue'
@@ -68,6 +75,7 @@ defineProps<{
 
 const store = useLogStore()
 const { toggleBookmark, isBookmarked } = useLogBookmarks()
+const { highlight } = useHighlight()
 
 const emit = defineEmits<{
   (e: 'open-ai-editor', chat: AiChat, entry: LogEntry): void

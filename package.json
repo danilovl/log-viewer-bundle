@@ -12,6 +12,7 @@
     },
     "dependencies": {
         "@symfony/webpack-encore": "^6.0.0",
+        "@vuepic/vue-datepicker": "^12.1.0",
         "apexcharts": "^5.10.4",
         "axios": "^1.14.0",
         "pinia": "^3.0.4",

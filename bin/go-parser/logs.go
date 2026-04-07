@@ -272,7 +272,7 @@ func emitMmapLinesDesc(data []byte, stop <-chan struct{}, isNewEntry func([]byte
 	return true
 }
 
-func runLogs(cfg RemoteConfig, parser LogParser, limit, offset int, cursor, level, levels, channel, search string, searchRegex, searchCaseSensitive bool, sort string) {
+func runLogs(cfg RemoteConfig, parser LogParser, limit, offset int, cursor, level, levels, channel, search string, searchRegex, searchCaseSensitive bool, dateFrom, dateTo, sort string) {
 	var cursorTime time.Time
 	if cursor != "" {
 		cursorTime, _ = time.Parse(time.RFC3339Nano, cursor)
@@ -280,6 +280,15 @@ func runLogs(cfg RemoteConfig, parser LogParser, limit, offset int, cursor, leve
 			cursorTime, _ = time.Parse("2006-01-02T15:04:05.000000Z07:00", cursor)
 		}
 	}
+
+	var dFrom, dTo time.Time
+	if dateFrom != "" {
+		dFrom = parseTimestamp(dateFrom)
+	}
+	if dateTo != "" {
+		dTo = parseTimestamp(dateTo)
+	}
+
 	var searchRe *regexp.Regexp
 	if searchRegex && search != "" {
 		pStr := search
@@ -310,7 +319,7 @@ func runLogs(cfg RemoteConfig, parser LogParser, limit, offset int, cursor, leve
 			levelsUpper[strings.ToUpper(strings.TrimSpace(s))] = struct{}{}
 		}
 	}
-	var bLevelLower, bChannelLower, bSearchLower []byte
+	var bLevelLower, bChannelLower []byte
 	levelASCII := isASCIIString(level)
 	channelASCII := isASCIIString(channel)
 	if level != "" {
@@ -320,7 +329,7 @@ func runLogs(cfg RemoteConfig, parser LogParser, limit, offset int, cursor, leve
 		bChannelLower = []byte(strings.ToLower(channel))
 	}
 	if searchVal != "" && !searchRegex && !searchCaseSensitive {
-		bSearchLower = []byte(searchVal)
+		// no bSearchLower
 	}
 
 	var mmapData []byte
@@ -364,6 +373,19 @@ func runLogs(cfg RemoteConfig, parser LogParser, limit, offset int, cursor, leve
 		if len(line) == 0 {
 			return true
 		}
+		
+		isAllSpaces := true
+		for _, b := range line {
+			if b != ' ' && b != '\t' && b != '\r' && b != '\n' {
+				isAllSpaces = false
+				break
+			}
+		}
+		if isAllSpaces {
+			return true
+		}
+
+		_ = needTime
 
 		// Byte-level pre-filters for fast rejection before any parsing
 		if level != "" && levelASCII && !containsFoldASCIIBytes(line, bLevelLower) {
@@ -372,20 +394,48 @@ func runLogs(cfg RemoteConfig, parser LogParser, limit, offset int, cursor, leve
 		if channel != "" && channelASCII && !containsFoldASCIIBytes(line, bChannelLower) {
 			return true
 		}
-		if searchVal != "" && !searchRegex && !searchCaseSensitive {
-			if searchASCII {
-				if !containsFoldASCIIBytes(line, bSearchLower) {
-					return true
-				}
-			} else if !bytes.Contains(bytes.ToLower(line), bSearchLower) {
+
+		if searchVal != "" {
+			if !containsSearchValueBytes(line, searchVal, searchRegex, searchCaseSensitive, searchASCII, searchRe) {
 				return true
 			}
 		}
 
-		entry := parser.Parse(line, fileName, true, needTime)
+		entry := parser.Parse(line, fileName, true, true)
 		if entry == nil {
 			return true
 		}
+		
+		if !parser.IsNewEntry(line) && entry.Timestamp == "" {
+			return true
+		}
+
+		entryTime := entry.Time
+		eTimeStr := ""
+		if entryTime.Year() > 1 {
+			eTimeStr = entryTime.Format("2006-01-02 15:04:05")
+		} else if entry.Timestamp != "" {
+			// If we have a timestamp but couldn't parse it into time.Time, 
+			// it's likely a format we don't support or partially support.
+			// But for consistency with PHP, we should probably try harder.
+			// However, if we can't parse it, we don't filter it.
+		}
+
+		if !dFrom.IsZero() && eTimeStr != "" {
+			dFromStr := dFrom.Format("2006-01-02 15:04:05")
+			if eTimeStr < dFromStr {
+				PutEntry(entry)
+				return true
+			}
+		}
+		if !dTo.IsZero() && eTimeStr != "" {
+			dToStr := dTo.Format("2006-01-02 15:04:05")
+			if eTimeStr > dToStr {
+				PutEntry(entry)
+				return true
+			}
+		}
+
 
 		if levelUpper != "" && entry.Level != levelUpper {
 			PutEntry(entry)
@@ -449,7 +499,13 @@ func runLogs(cfg RemoteConfig, parser LogParser, limit, offset int, cursor, leve
 					scanData = mmapData[:cursorOffset]
 				}
 			}
+		} else if !dFrom.IsZero() && sort == "asc" {
+			cursorOffset := binarySearchMmap(mmapData, dFrom, isNewEntry)
+			if cursorOffset > 0 {
+				scanData = mmapData[cursorOffset:]
+			}
 		}
+
 		if sort == "asc" {
 			emitMmapLinesAsc(scanData, isNewEntry, processLine)
 		} else {

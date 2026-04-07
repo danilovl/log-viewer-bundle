@@ -41,6 +41,11 @@ export interface AiChat {
   hasPrompt: boolean
 }
 
+export interface RegexTemplate {
+  label: string
+  value: string
+}
+
 export interface SourceInfo {
   id: string
   name: string
@@ -92,6 +97,7 @@ export interface AppConfig {
   liveSelectedLevels: string[]
   aiButtonLevels: string[]
   aiChats: AiChat[]
+  regexTemplates: RegexTemplate[]
 }
 
 export interface ServerConfig {
@@ -117,4 +123,5 @@ export interface ServerConfig {
   liveSelectedLevels: string[]
   aiButtonLevels: string[]
   aiChats: AiChat[]
+  regexTemplates: RegexTemplate[]
 }

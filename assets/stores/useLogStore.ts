@@ -95,6 +95,7 @@ export const useLogStore = defineStore('log', () => {
       liveLogPageEnabled: logConfig.liveLogPageEnabled,
       liveSelectedLevels: logConfig.liveSelectedLevels,
       aiChats: logConfig.aiChats,
+      regexTemplates: logConfig.regexTemplates,
       refreshCountdown: autoRefresh.refreshCountdown,
       dashboardRefreshCountdown: autoRefresh.dashboardRefreshCountdown,
       liveRefreshCountdown: autoRefresh.liveRefreshCountdown,
@@ -119,6 +120,7 @@ export const useLogStore = defineStore('log', () => {
     liveSelectedLevels: logConfig.liveSelectedLevels,
     aiButtonLevels: logConfig.aiButtonLevels,
     aiChats: logConfig.aiChats,
+    regexTemplates: logConfig.regexTemplates,
     settingsStore,
   })
 
@@ -332,11 +334,7 @@ export const useLogStore = defineStore('log', () => {
   )
 
   function resetFilters(): void {
-    filters.filterLevel = ''
-    filters.filterChannel = ''
-    filters.filterSearch = ''
-    filters.channels = []
-    pagination.currentPage = 1
+    filters.resetFilters()
     data.loadEntries(true, false)
   }
 

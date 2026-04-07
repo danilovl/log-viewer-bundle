@@ -61,6 +61,11 @@ final class DoctrineParser implements LogInterfaceParser, LogParserGoPatternInte
         return self::PATTERN;
     }
 
+    public function getDateFormat(): string
+    {
+        return 'Y-m-d\TH:i:s.uP';
+    }
+
     public function getGoParserName(?string $parserType): string
     {
         return 'doctrine';

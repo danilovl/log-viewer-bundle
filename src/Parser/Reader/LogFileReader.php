@@ -37,6 +37,8 @@ class LogFileReader
         $handle = $this->openFile($filePath, $host);
 
         $search = $filters?->search;
+        $searchRegex = $filters !== null && $filters->searchRegex;
+        $searchRegexPattern = $searchRegex ? $this->getSearchRegexPattern($filters) : null;
         $entries = [];
 
         try {
@@ -52,13 +54,13 @@ class LogFileReader
                     break;
                 }
 
-                if ($search !== null && mb_stripos($line, $search) === false) {
+                if ($search !== null && !$searchRegex && mb_stripos($line, $search) === false) {
                     continue;
                 }
 
                 $entry = $this->parser->parse($line, $filePath, $parserType);
 
-                if ($filters !== null && !$this->applyFilters($entry, $filters, $cursor, $sortDir)) {
+                if ($filters !== null && !$this->applyFilters($entry, $filters, $cursor, $sortDir, $searchRegexPattern)) {
                     continue;
                 }
 
@@ -112,9 +114,12 @@ class LogFileReader
             calculatedAt: $calculatedAt,
         );
 
+        $searchRegex = $filters !== null && $filters->searchRegex;
+        $searchRegexPattern = $searchRegex ? $this->getSearchRegexPattern($filters) : null;
+
         try {
             while (($line = fgets($handle)) !== false) {
-                if ($search !== null && mb_stripos($line, $search) === false) {
+                if ($search !== null && !$searchRegex && mb_stripos($line, $search) === false) {
                     continue;
                 }
 
@@ -124,7 +129,7 @@ class LogFileReader
                 }
 
                 $entry = $this->parser->parse($trimmedLine, $filePath, $parserType);
-                if ($hasFilters && $filters !== null && !$this->applyFilters($entry, $filters, null, 'desc')) {
+                if ($hasFilters && $filters !== null && !$this->applyFilters($entry, $filters, null, 'desc', $searchRegexPattern)) {
                     continue;
                 }
 
@@ -194,12 +199,14 @@ class LogFileReader
 
         $handle = $this->openFile($filePath, $host);
         $search = $filters->search;
+        $searchRegex = $filters->searchRegex;
+        $searchRegexPattern = $searchRegex ? $this->getSearchRegexPattern($filters) : null;
 
         $total = 0;
 
         try {
             while (($line = fgets($handle)) !== false) {
-                if ($search !== null && mb_stripos($line, $search) === false) {
+                if ($search !== null && !$searchRegex && mb_stripos($line, $search) === false) {
                     continue;
                 }
 
@@ -209,7 +216,7 @@ class LogFileReader
                 }
 
                 $entry = $this->parser->parse($trimmedLine, $filePath, $parserType);
-                if (!$this->applyFilters($entry, $filters, null, 'desc')) {
+                if (!$this->applyFilters($entry, $filters, null, 'desc', $searchRegexPattern)) {
                     continue;
                 }
 
@@ -274,6 +281,8 @@ class LogFileReader
         $currentSize = (int) filesize($filePath);
         $hasFilters = $filters !== null && $filters->hasFilters;
         $search = $filters?->search;
+        $searchRegex = $filters !== null && $filters->searchRegex;
+        $searchRegexPattern = $searchRegex ? $this->getSearchRegexPattern($filters) : null;
         $entries = [];
 
         try {
@@ -285,7 +294,7 @@ class LogFileReader
                     continue;
                 }
 
-                if ($search !== null && mb_stripos($line, $search) === false) {
+                if ($search !== null && !$searchRegex && mb_stripos($line, $search) === false) {
                     $newPosition = ftell($handle) ?: $newPosition;
 
                     continue;
@@ -293,7 +302,7 @@ class LogFileReader
 
                 $entry = $this->parser->parse($trimmedLine, $filePath, $parserType);
 
-                if ($hasFilters && $filters !== null && !$this->applyFilters($entry, $filters, null, 'asc')) {
+                if ($hasFilters && $filters !== null && !$this->applyFilters($entry, $filters, null, 'asc', $searchRegexPattern)) {
                     $newPosition = ftell($handle) ?: $newPosition;
 
                     continue;
@@ -313,17 +322,29 @@ class LogFileReader
         return ['entries' => $entries, 'position' => $newPosition];
     }
 
-    private function applyFilters(LogEntry $entry, LogViewerFilters $filters, ?string $cursor, string $sortDir): bool
+    private function applyFilters(LogEntry $entry, LogViewerFilters $filters, ?string $cursor, string $sortDir, ?string $searchRegexPattern = null): bool
     {
-        if ($cursor !== null) {
-            $entryTimestamp = $entry->normalizedTimestamp !== '' ? $entry->normalizedTimestamp : $entry->timestamp;
+        $entryTimestamp = $entry->normalizedTimestamp !== '' ? $entry->normalizedTimestamp : DateNormalizer::normalize($entry->timestamp);
+        $entryTimestamp = $entryTimestamp !== '' ? $entryTimestamp : $entry->timestamp;
 
-            if ($sortDir === 'desc' && $entryTimestamp >= $cursor) {
+        if ($cursor !== null) {
+            $normalizedCursor = DateNormalizer::normalize($cursor);
+            $normalizedCursor = $normalizedCursor !== '' ? $normalizedCursor : $cursor;
+
+            if ($sortDir === 'desc' && $entryTimestamp >= $normalizedCursor) {
                 return false;
             }
-            if ($sortDir === 'asc' && $entryTimestamp <= $cursor) {
+            if ($sortDir === 'asc' && $entryTimestamp <= $normalizedCursor) {
                 return false;
             }
+        }
+
+        if ($filters->dateFrom !== null && $entryTimestamp < $filters->dateFrom) {
+            return false;
+        }
+
+        if ($filters->dateTo !== null && $entryTimestamp > $filters->dateTo) {
+            return false;
         }
 
         if ($filters->level !== null && $entry->level !== $filters->level) {
@@ -340,8 +361,7 @@ class LogFileReader
 
         if ($filters->search !== null) {
             if ($filters->searchRegex) {
-                $flags = $filters->searchCaseSensitive ? '' : 'i';
-                $pattern = '/' . str_replace('/', '\/', $filters->search) . '/' . $flags;
+                $pattern = $searchRegexPattern ?? $this->getSearchRegexPattern($filters);
 
                 $messageMatch = @preg_match($pattern, $entry->message) === 1;
                 $sqlMatch = $entry->sql !== null && @preg_match($pattern, $entry->sql) === 1;
@@ -361,6 +381,13 @@ class LogFileReader
         }
 
         return true;
+    }
+
+    private function getSearchRegexPattern(LogViewerFilters $filters): string
+    {
+        $flags = $filters->searchCaseSensitive ? '' : 'i';
+
+        return '/' . str_replace('/', '\/', (string) $filters->search) . '/' . $flags;
     }
 
     private function collectStats(LogViewerStats $stats, LogEntry $entry, ?string $timelineFormat = null): void

@@ -38,6 +38,8 @@ export interface TranslationMessages {
   search: string
   allLevels: string
   allChannels: string
+  dateFrom: string
+  dateTo: string
   searchPlaceholder: string
   apply: string
   reset: string
@@ -83,6 +85,7 @@ export interface TranslationMessages {
   hour: string
   day: string
   searchRegex: string
+  searchTemplates: string
   searchCaseSensitive: string
   zenMode: string
   highlightSearch: string
@@ -171,6 +174,8 @@ const en: TranslationMessages = {
   search: 'Search',
   allLevels: 'All Levels',
   allChannels: 'All Channels',
+  dateFrom: 'Date From',
+  dateTo: 'Date To',
   searchPlaceholder: 'Search in message or SQL...',
   apply: 'Apply',
   reset: 'Reset',
@@ -218,6 +223,7 @@ const en: TranslationMessages = {
   hour: 'Hour',
   day: 'Day',
   searchRegex: 'Regex',
+  searchTemplates: 'Regex Templates',
   searchCaseSensitive: 'Case Sensitive',
   highlightSearch: 'Highlight Search',
   zenMode: 'Zen Mode',
@@ -306,6 +312,8 @@ const zh: TranslationMessages = {
   search: '搜索',
   allLevels: '所有级别',
   allChannels: '所有频道',
+  dateFrom: '从日期',
+  dateTo: '至日期',
   searchPlaceholder: '搜索消息或SQL...',
   apply: '应用',
   reset: '重置',
@@ -351,6 +359,7 @@ const zh: TranslationMessages = {
   hour: 'Hour',
   day: 'Day',
   searchRegex: 'Regex',
+  searchTemplates: '正则模板',
   searchCaseSensitive: '区分大小写',
   highlightSearch: '高亮搜索',
   zenMode: '禅模式',
@@ -439,6 +448,8 @@ const hi: TranslationMessages = {
   search: 'खोज',
   allLevels: 'सभी स्तर',
   allChannels: 'सभी चैनल',
+  dateFrom: 'तारीख से',
+  dateTo: 'तारीख तक',
   searchPlaceholder: 'संदेश या SQL में खोजें...',
   apply: 'लागू करें',
   reset: 'रीसेट',
@@ -485,7 +496,8 @@ const hi: TranslationMessages = {
   hour: 'Hour',
   day: 'Day',
   searchRegex: 'Regex',
-  searchCaseSensitive: 'केस-सेंसिटिव',
+  searchTemplates: 'Regex टेम्पलेट्स',
+  searchCaseSensitive: 'केс-सेंसिटिव',
   highlightSearch: 'हाइलाइट सर्च',
   zenMode: 'Zen मोड',
   bookmarks: 'बुकमार्क',
@@ -573,6 +585,8 @@ const es: TranslationMessages = {
   search: 'Buscar',
   allLevels: 'Todos los niveles',
   allChannels: 'Todos los canales',
+  dateFrom: 'Fecha desde',
+  dateTo: 'Fecha hasta',
   searchPlaceholder: 'Buscar en mensaje o SQL...',
   apply: 'Aplicar',
   reset: 'Restablecer',
@@ -620,6 +634,7 @@ const es: TranslationMessages = {
   hour: 'Hour',
   day: 'Day',
   searchRegex: 'Regex',
+  searchTemplates: 'Plantillas de Regex',
   searchCaseSensitive: 'Sensible a mayúsculas',
   highlightSearch: 'Resaltar búsqueda',
   zenMode: 'Modo Zen',
@@ -709,6 +724,8 @@ const fr: TranslationMessages = {
   search: 'Recherche',
   allLevels: 'Tous les niveaux',
   allChannels: 'Tous les canaux',
+  dateFrom: 'Date du',
+  dateTo: 'Date au',
   searchPlaceholder: 'Rechercher dans le message ou SQL...',
   apply: 'Appliquer',
   reset: 'Réinitialiser',
@@ -756,6 +773,7 @@ const fr: TranslationMessages = {
   hour: 'Hour',
   day: 'Day',
   searchRegex: 'Regex',
+  searchTemplates: 'Modèles de Regex',
   searchCaseSensitive: 'Sensible à la casse',
   highlightSearch: 'Surligner la recherche',
   zenMode: 'Mode Zen',
@@ -844,6 +862,8 @@ const ar: TranslationMessages = {
   search: 'بحث',
   allLevels: 'جميع المستويات',
   allChannels: 'جميع القنوات',
+  dateFrom: 'التاريخ من',
+  dateTo: 'التاريخ إلى',
   searchPlaceholder: 'البحث في الرسالة أو SQL...',
   apply: 'تطبيق',
   reset: 'إعادة تعيين',
@@ -890,6 +910,7 @@ const ar: TranslationMessages = {
   hour: 'Hour',
   day: 'Day',
   searchRegex: 'Regex',
+  searchTemplates: 'قوالب Regex',
   searchCaseSensitive: 'حساس لحالة الأحرف',
   highlightSearch: 'تسليط الضوء على البحث',
   zenMode: 'وضع Zen',
@@ -978,6 +999,8 @@ const pt: TranslationMessages = {
   search: 'Pesquisar',
   allLevels: 'Todos os níveis',
   allChannels: 'Todos os canais',
+  dateFrom: 'Data de',
+  dateTo: 'Data até',
   searchPlaceholder: 'Pesquisar na mensagem ou SQL...',
   apply: 'Aplicar',
   reset: 'Redefinir',
@@ -1025,6 +1048,7 @@ const pt: TranslationMessages = {
   hour: 'Hour',
   day: 'Day',
   searchRegex: 'Regex',
+  searchTemplates: 'Modelos de Regex',
   searchCaseSensitive: 'Sensível a maiúsculas',
   highlightSearch: 'Destacar pesquisa',
   zenMode: 'Modo Zen',
@@ -1113,6 +1137,8 @@ const ru: TranslationMessages = {
   search: 'Поиск',
   allLevels: 'Все уровни',
   allChannels: 'Все каналы',
+  dateFrom: 'Дата от',
+  dateTo: 'Дата до',
   searchPlaceholder: 'Поиск в сообщении или SQL...',
   apply: 'Применить',
   reset: 'Сбросить',
@@ -1160,6 +1186,7 @@ const ru: TranslationMessages = {
   hour: 'Час',
   day: 'День',
   searchRegex: 'Regex',
+  searchTemplates: 'Шаблоны Regex',
   searchCaseSensitive: 'Учитывать регистр',
   highlightSearch: 'Подсветка поиска',
   zenMode: 'Zen Режим',
@@ -1248,6 +1275,8 @@ const ja: TranslationMessages = {
   search: '検索',
   allLevels: 'すべてのレベル',
   allChannels: 'すべてのチャネル',
+  dateFrom: '開始日',
+  dateTo: '終了日',
   searchPlaceholder: 'メッセージまたはSQLで検索...',
   apply: '適用',
   reset: 'リセット',
@@ -1294,6 +1323,7 @@ const ja: TranslationMessages = {
   hour: 'Hour',
   day: 'Day',
   searchRegex: 'Regex',
+  searchTemplates: 'Regex テンプレート',
   searchCaseSensitive: '大文字と小文字を区別',
   highlightSearch: '検索結果を強調表示',
   zenMode: '禅モード',
@@ -1382,6 +1412,8 @@ const de: TranslationMessages = {
   search: 'Suche',
   allLevels: 'Alle Level',
   allChannels: 'Alle Kanäle',
+  dateFrom: 'Datum von',
+  dateTo: 'Datum bis',
   searchPlaceholder: 'In Nachricht oder SQL suchen...',
   apply: 'Anwenden',
   reset: 'Zurücksetzen',
@@ -1430,6 +1462,7 @@ const de: TranslationMessages = {
   hour: 'Hour',
   day: 'Day',
   searchRegex: 'Regex',
+  searchTemplates: 'Regex-Vorlagen',
   searchCaseSensitive: 'Groß-/Kleinschreibung',
   highlightSearch: 'Suche hervorheben',
   zenMode: 'Zen-Modus',

@@ -7,8 +7,23 @@
       </button>
     </div>
     <div class="json-body">
-      <span v-if="!isExpanded" class="json-summary">{{ JSON.stringify(context) }}</span>
-      <pre v-else class="json-context-expanded">{{ JSON.stringify(context, null, 2) }}</pre>
+      <span
+        v-if="!isExpanded"
+        class="json-summary"
+        v-html="
+          highlight(JSON.stringify(context), store.filters.filterSearchHighlight ? store.filters.filterSearch : '')
+        "
+      ></span>
+      <pre
+        v-else
+        class="json-context-expanded"
+        v-html="
+          highlight(
+            JSON.stringify(context, null, 2),
+            store.filters.filterSearchHighlight ? store.filters.filterSearch : '',
+          )
+        "
+      ></pre>
     </div>
   </div>
 </template>
@@ -16,11 +31,15 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useI18n } from '@/i18n/useI18n'
+import { useLogStore } from '@/stores/useLogStore'
+import { useHighlight } from '@/composables/useHighlight'
 
 defineProps<{
   context: Record<string, unknown>
 }>()
 
+const store = useLogStore()
+const { highlight } = useHighlight()
 const { t } = useI18n()
 const isExpanded = ref(false)
 </script>

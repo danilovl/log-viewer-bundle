@@ -216,7 +216,9 @@ func scanChunkEntries(chunk []byte, isNewEntry func([]byte) bool, fn func([]byte
 
 		if isNewEntry(line) {
 			if len(pending) > 0 {
-				fn(pending)
+				if len(pending) > 1 || (pending[0] != ' ' && pending[0] != '\n' && pending[0] != '\r') {
+					fn(pending)
+				}
 			}
 			pending = line
 		} else {
@@ -237,13 +239,21 @@ func scanChunkEntries(chunk []byte, isNewEntry func([]byte) bool, fn func([]byte
 }
 
 // runStatsDashboard collects full-file stats with no filters.
-func runStatsDashboard(cfg RemoteConfig, parser LogParser) {
+func runStatsDashboard(cfg RemoteConfig, parser LogParser, dateFrom, dateTo string) {
 	file, size, err := OpenLogFile(cfg)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error opening file: %v\n", err)
 		os.Exit(1)
 	}
 	defer file.Close()
+
+	var dFrom, dTo time.Time
+	if dateFrom != "" {
+		dFrom = parseTimestamp(dateFrom)
+	}
+	if dateTo != "" {
+		dTo = parseTimestamp(dateTo)
+	}
 
 	updatedAt := time.Now().Format(time.RFC3339)
 	if f, ok := file.(*os.File); ok {
@@ -255,7 +265,6 @@ func runStatsDashboard(cfg RemoteConfig, parser LogParser) {
 	stats := newStats(size, updatedAt)
 	var statsMu sync.Mutex
 	numWorkers := runtime.NumCPU()
-	fileName := stripGzExt(filepath.Base(cfg.FilePath))
 	isNewEntry := parser.IsNewEntry
 
 	var mmapData []byte
@@ -292,30 +301,57 @@ func runStatsDashboard(cfg RemoteConfig, parser LogParser) {
 				lTimeline := make(map[string]int, 64)
 
 				scanChunkEntries(chunk, isNewEntry, func(line []byte) {
-					if len(line) < 10 {
+					if len(line) == 0 {
 						return
 					}
-					level, channel, hour, ok := parser.ExtractStatsFields(line)
-					if !ok {
-						entry := parser.Parse(line, fileName, false, false)
-						if entry == nil {
+					isAllSpaces := true
+					for _, b := range line {
+						if b != ' ' && b != '\t' && b != '\r' && b != '\n' {
+							isAllSpaces = false
+							break
+						}
+					}
+					if isAllSpaces {
+						return
+					}
+
+					fileName := stripGzExt(filepath.Base(cfg.FilePath))
+					entry := parser.Parse(line, fileName, false, true)
+					if entry == nil {
+						return
+					}
+					if !parser.IsNewEntry(line) && entry.Timestamp == "" {
+						return
+					}
+
+					entryTime := entry.Time
+					eTimeStr := ""
+					if entryTime.Year() > 1 {
+						eTimeStr = entryTime.Format("2006-01-02 15:04:05")
+					}
+
+					if !dFrom.IsZero() && eTimeStr != "" {
+						dFromStr := dFrom.Format("2006-01-02 15:04:05")
+						if eTimeStr < dFromStr {
+							PutEntry(entry)
 							return
 						}
-						lTotal++
-						lLevels[entry.Level]++
-						lChannels[entry.Channel]++
-						if h := parseHourBucket(entry.Timestamp); h != "" {
-							lTimeline[h]++
+					}
+					if !dTo.IsZero() && eTimeStr != "" {
+						dToStr := dTo.Format("2006-01-02 15:04:05")
+						if eTimeStr > dToStr {
+							PutEntry(entry)
+							return
 						}
-						PutEntry(entry)
-						return
 					}
+
 					lTotal++
-					lLevels[level]++
-					lChannels[channel]++
-					if hour != "" {
-						lTimeline[hour]++
+					lLevels[entry.Level]++
+					lChannels[entry.Channel]++
+					if h := parseHourBucket(entry.Timestamp); h != "" {
+						lTimeline[h]++
 					}
+					PutEntry(entry)
 				})
 
 				mergeLocalStats(stats, &statsMu, lTotal, lLevels, lChannels, lTimeline)
@@ -337,30 +373,57 @@ func runStatsDashboard(cfg RemoteConfig, parser LogParser) {
 
 				for batch := range jobs {
 					for _, line := range batch {
-						if len(line) < 10 {
+						if len(line) == 0 {
 							continue
 						}
-						level, channel, hour, ok := parser.ExtractStatsFields(line)
-						if !ok {
-							entry := parser.Parse(line, fileName, false, false)
-							if entry == nil {
+						isAllSpaces := true
+						for _, b := range line {
+							if b != ' ' && b != '\t' && b != '\r' && b != '\n' {
+								isAllSpaces = false
+								break
+							}
+						}
+						if isAllSpaces {
+							continue
+						}
+
+						fileName := stripGzExt(filepath.Base(cfg.FilePath))
+						entry := parser.Parse(line, fileName, false, true)
+						if entry == nil {
+							continue
+						}
+						if !parser.IsNewEntry(line) && entry.Timestamp == "" {
+							continue
+						}
+
+						entryTime := entry.Time
+						eTimeStr := ""
+						if entryTime.Year() > 1 {
+							eTimeStr = entryTime.Format("2006-01-02 15:04:05")
+						}
+
+						if !dFrom.IsZero() && eTimeStr != "" {
+							dFromStr := dFrom.Format("2006-01-02 15:04:05")
+							if eTimeStr < dFromStr {
+								PutEntry(entry)
 								continue
 							}
-							lTotal++
-							lLevels[entry.Level]++
-							lChannels[entry.Channel]++
-							if h := parseHourBucket(entry.Timestamp); h != "" {
-								lTimeline[h]++
+						}
+						if !dTo.IsZero() && eTimeStr != "" {
+							dToStr := dTo.Format("2006-01-02 15:04:05")
+							if eTimeStr > dToStr {
+								PutEntry(entry)
+								continue
 							}
-							PutEntry(entry)
-							continue
 						}
+
 						lTotal++
-						lLevels[level]++
-						lChannels[channel]++
-						if hour != "" {
-							lTimeline[hour]++
+						lLevels[entry.Level]++
+						lChannels[entry.Channel]++
+						if h := parseHourBucket(entry.Timestamp); h != "" {
+							lTimeline[h]++
 						}
+						PutEntry(entry)
 					}
 					batchPool.Put(batch)
 				}
@@ -377,13 +440,21 @@ func runStatsDashboard(cfg RemoteConfig, parser LogParser) {
 }
 
 // runStatsLog collects stats with filter support.
-func runStatsLog(cfg RemoteConfig, parser LogParser, filterLevel, filterLevels, filterChannel, filterSearch string, searchRegex, searchCaseSensitive bool) {
+func runStatsLog(cfg RemoteConfig, parser LogParser, filterLevel, filterLevels, filterChannel, filterSearch string, searchRegex, searchCaseSensitive bool, dateFrom, dateTo string) {
 	file, size, err := OpenLogFile(cfg)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error opening file: %v\n", err)
 		os.Exit(1)
 	}
 	defer file.Close()
+
+	var dFrom, dTo time.Time
+	if dateFrom != "" {
+		dFrom = parseTimestamp(dateFrom)
+	}
+	if dateTo != "" {
+		dTo = parseTimestamp(dateTo)
+	}
 
 	updatedAt := time.Now().Format(time.RFC3339)
 	if f, ok := file.(*os.File); ok {
@@ -395,7 +466,6 @@ func runStatsLog(cfg RemoteConfig, parser LogParser, filterLevel, filterLevels, 
 	stats := newStats(size, updatedAt)
 	var statsMu sync.Mutex
 	numWorkers := runtime.NumCPU()
-	fileName := stripGzExt(filepath.Base(cfg.FilePath))
 	isNewEntry := parser.IsNewEntry
 
 	var searchRe *regexp.Regexp
@@ -416,85 +486,72 @@ func runStatsLog(cfg RemoteConfig, parser LogParser, filterLevel, filterLevels, 
 		searchASCII = isASCIIString(searchVal)
 	}
 
-	filterLevelUpper := strings.ToUpper(filterLevel)
-	var filterLevelsUpper map[string]struct{}
+	filterLevelsUpper := make(map[string]struct{})
 	if filterLevels != "" {
-		filterLevelsUpper = make(map[string]struct{})
 		for _, s := range strings.Split(filterLevels, ",") {
 			filterLevelsUpper[strings.ToUpper(strings.TrimSpace(s))] = struct{}{}
 		}
+	} else {
+		filterLevelsUpper = nil
 	}
 
-	levelASCII := isASCIIString(filterLevel)
-	channelASCII := isASCIIString(filterChannel)
-	var bLevelL, bChannelL, bSearchLower []byte
-	if filterLevel != "" {
-		bLevelL = []byte(strings.ToLower(filterLevel))
-	}
-	if filterChannel != "" {
-		bChannelL = []byte(strings.ToLower(filterChannel))
-	}
-	if searchVal != "" && !searchRegex && !searchCaseSensitive {
-		bSearchLower = []byte(searchVal)
-	}
+ 	processFilteredLine := func(line []byte, lTotal *int, lLevels, lChannels, lTimeline map[string]int) {
+ 		if len(line) == 0 {
+ 			return
+ 		}
+		
+ 		isAllSpaces := true
+ 		for _, b := range line {
+ 			if b != ' ' && b != '\t' && b != '\r' && b != '\n' {
+ 				isAllSpaces = false
+ 				break
+ 			}
+ 		}
+ 		if isAllSpaces {
+ 			return
+ 		}
 
-	// Shared filter logic for one entry line.
-	processFilteredLine := func(line []byte, lTotal *int, lLevels, lChannels, lTimeline map[string]int) {
-		if len(line) < 10 {
-			return
-		}
-
-		if searchVal != "" && !searchRegex && !searchCaseSensitive {
-			if searchASCII {
-				if !containsFoldASCIIBytes(line, bSearchLower) {
-					return
-				}
-			} else if !bytes.Contains(bytes.ToLower(line), bSearchLower) {
+		// Pre-filter level/channel on raw bytes if possible
+		if filterLevel != "" && isASCIIString(filterLevel) {
+			if !containsFoldASCIIBytes(line, []byte(strings.ToLower(filterLevel))) {
 				return
 			}
 		}
 
-		// Fast path: try parser's ExtractStatsFields first when no search filter
-		if searchVal == "" {
-			level, channel, hour, ok := parser.ExtractStatsFields(line)
-			if ok {
-				if filterLevelUpper != "" && level != filterLevelUpper {
-					return
-				}
-				if filterLevelsUpper != nil {
-					if _, ok := filterLevelsUpper[level]; !ok {
-						return
-					}
-				}
-				if filterChannel != "" && !strings.EqualFold(channel, filterChannel) {
-					return
-				}
-				*lTotal++
-				lLevels[level]++
-				lChannels[channel]++
-				if hour != "" {
-					lTimeline[hour]++
-				}
+		if searchVal != "" {
+			if !containsSearchValueBytes(line, searchVal, searchRegex, searchCaseSensitive, searchASCII, searchRe) {
 				return
 			}
 		}
 
-		if filterLevel != "" && levelASCII {
-			if !containsFoldASCIIBytes(line, bLevelL) {
-				return
-			}
-		}
-		if filterChannel != "" && channelASCII {
-			if !containsFoldASCIIBytes(line, bChannelL) {
-				return
-			}
-		}
+ 		fileName := stripGzExt(filepath.Base(cfg.FilePath))
+ 		entry := parser.Parse(line, fileName, false, true)
+ 		if entry == nil {
+ 			return
+ 		}
 
-		entry := parser.Parse(line, fileName, searchVal != "", false)
-		if entry == nil {
-			return
-		}
-		if filterLevelUpper != "" && entry.Level != filterLevelUpper {
+ 		entryTime := entry.Time
+ 		eTimeStr := ""
+ 		if entryTime.Year() > 1 {
+ 			eTimeStr = entryTime.Format("2006-01-02 15:04:05")
+ 		}
+
+ 		if !dFrom.IsZero() && eTimeStr != "" {
+ 			dFromStr := dFrom.Format("2006-01-02 15:04:05")
+ 			if eTimeStr < dFromStr {
+ 				PutEntry(entry)
+ 				return
+ 			}
+ 		}
+ 		if !dTo.IsZero() && eTimeStr != "" {
+ 			dToStr := dTo.Format("2006-01-02 15:04:05")
+ 			if eTimeStr > dToStr {
+ 				PutEntry(entry)
+ 				return
+ 			}
+ 		}
+
+		if filterLevel != "" && entry.Level != strings.ToUpper(filterLevel) {
 			PutEntry(entry)
 			return
 		}
@@ -507,14 +564,6 @@ func runStatsLog(cfg RemoteConfig, parser LogParser, filterLevel, filterLevels, 
 		if filterChannel != "" && !strings.EqualFold(entry.Channel, filterChannel) {
 			PutEntry(entry)
 			return
-		}
-		if searchVal != "" {
-			msgMatch := containsSearchValue(entry.Message, searchVal, searchRegex, searchCaseSensitive, searchASCII, searchRe)
-			sqlMatch := entry.SQL != "" && containsSearchValue(entry.SQL, searchVal, searchRegex, searchCaseSensitive, searchASCII, searchRe)
-			if !msgMatch && !sqlMatch {
-				PutEntry(entry)
-				return
-			}
 		}
 
 		*lTotal++
@@ -599,22 +648,30 @@ func runStatsLog(cfg RemoteConfig, parser LogParser, filterLevel, filterLevels, 
 }
 
 // Backward-compatible aliases for old mode names.
-func runStats(cfg RemoteConfig, parser LogParser) {
-	runStatsDashboard(cfg, parser)
+func runStats(cfg RemoteConfig, parser LogParser, dateFrom, dateTo string) {
+	runStatsDashboard(cfg, parser, dateFrom, dateTo)
 }
 
-func runStatsFilter(cfg RemoteConfig, parser LogParser, filterLevel, filterLevels, filterChannel, filterSearch string, searchRegex, searchCaseSensitive bool) {
-	runStatsLog(cfg, parser, filterLevel, filterLevels, filterChannel, filterSearch, searchRegex, searchCaseSensitive)
+func runStatsFilter(cfg RemoteConfig, parser LogParser, filterLevel, filterLevels, filterChannel, filterSearch string, searchRegex, searchCaseSensitive bool, dateFrom, dateTo string) {
+	runStatsLog(cfg, parser, filterLevel, filterLevels, filterChannel, filterSearch, searchRegex, searchCaseSensitive, dateFrom, dateTo)
 }
 
 // runCount counts total entries with filter support.
-func runCount(cfg RemoteConfig, parser LogParser, filterLevel, filterLevels, filterChannel, filterSearch string, searchRegex, searchCaseSensitive bool) {
+func runCount(cfg RemoteConfig, parser LogParser, filterLevel, filterLevels, filterChannel, filterSearch string, searchRegex, searchCaseSensitive bool, dateFrom, dateTo string) {
 	file, _, err := OpenLogFile(cfg)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error opening file: %v\n", err)
 		os.Exit(1)
 	}
 	defer file.Close()
+
+	var dFrom, dTo time.Time
+	if dateFrom != "" {
+		dFrom = parseTimestamp(dateFrom)
+	}
+	if dateTo != "" {
+		dTo = parseTimestamp(dateTo)
+	}
 
 	numWorkers := runtime.NumCPU()
 	fileName := stripGzExt(filepath.Base(cfg.FilePath))
@@ -638,78 +695,74 @@ func runCount(cfg RemoteConfig, parser LogParser, filterLevel, filterLevels, fil
 		searchASCII = isASCIIString(searchVal)
 	}
 
-	filterLevelUpper := strings.ToUpper(filterLevel)
-	var filterLevelsUpper map[string]struct{}
+	filterLevelsUpper := make(map[string]struct{})
 	if filterLevels != "" {
-		filterLevelsUpper = make(map[string]struct{})
 		for _, s := range strings.Split(filterLevels, ",") {
 			filterLevelsUpper[strings.ToUpper(strings.TrimSpace(s))] = struct{}{}
 		}
-	}
-
-	levelASCII := isASCIIString(filterLevel)
-	channelASCII := isASCIIString(filterChannel)
-	var bLevelL, bChannelL, bSearchLower []byte
-	if filterLevel != "" {
-		bLevelL = []byte(strings.ToLower(filterLevel))
-	}
-	if filterChannel != "" {
-		bChannelL = []byte(strings.ToLower(filterChannel))
-	}
-	if searchVal != "" && !searchRegex && !searchCaseSensitive {
-		bSearchLower = []byte(searchVal)
+	} else {
+		filterLevelsUpper = nil
 	}
 
 	processCountLine := func(line []byte, lTotal *int) {
-		if len(line) < 10 {
+		if len(line) == 0 {
+			return
+		}
+		
+		isAllSpaces := true
+		for _, b := range line {
+			if b != ' ' && b != '\t' && b != '\r' && b != '\n' {
+				isAllSpaces = false
+				break
+			}
+		}
+		if isAllSpaces {
 			return
 		}
 
-		if searchVal != "" && !searchRegex && !searchCaseSensitive {
-			if searchASCII {
-				if !containsFoldASCIIBytes(line, bSearchLower) {
-					return
-				}
-			} else if !bytes.Contains(bytes.ToLower(line), bSearchLower) {
+		// Pre-filter level/channel on raw bytes if possible
+		if filterLevel != "" && isASCIIString(filterLevel) {
+			if !containsFoldASCIIBytes(line, []byte(strings.ToLower(filterLevel))) {
 				return
 			}
 		}
 
-		if searchVal == "" {
-			level, channel, _, ok := parser.ExtractStatsFields(line)
-			if ok {
-				if filterLevelUpper != "" && level != filterLevelUpper {
-					return
-				}
-				if filterLevelsUpper != nil {
-					if _, ok := filterLevelsUpper[level]; !ok {
-						return
-					}
-				}
-				if filterChannel != "" && !strings.EqualFold(channel, filterChannel) {
-					return
-				}
-				*lTotal++
+		if searchVal != "" {
+			if !containsSearchValueBytes(line, searchVal, searchRegex, searchCaseSensitive, searchASCII, searchRe) {
 				return
 			}
 		}
 
-		if filterLevel != "" && levelASCII {
-			if !containsFoldASCIIBytes(line, bLevelL) {
-				return
-			}
-		}
-		if filterChannel != "" && channelASCII {
-			if !containsFoldASCIIBytes(line, bChannelL) {
-				return
-			}
-		}
-
-		entry := parser.Parse(line, fileName, searchVal != "", false)
+		entry := parser.Parse(line, fileName, false, true)
 		if entry == nil {
 			return
 		}
-		if filterLevelUpper != "" && entry.Level != filterLevelUpper {
+		if !parser.IsNewEntry(line) && entry.Timestamp == "" {
+			return
+		}
+
+		entryTime := entry.Time
+		eTimeStr := ""
+		if entryTime.Year() > 1 {
+			eTimeStr = entryTime.Format("2006-01-02 15:04:05")
+		}
+
+		if !dFrom.IsZero() && eTimeStr != "" {
+			dFromStr := dFrom.Format("2006-01-02 15:04:05")
+			if eTimeStr < dFromStr {
+				PutEntry(entry)
+				return
+			}
+		}
+		if !dTo.IsZero() && eTimeStr != "" {
+			dToStr := dTo.Format("2006-01-02 15:04:05")
+			if eTimeStr > dToStr {
+				PutEntry(entry)
+				return
+			}
+		}
+
+		if filterLevel != "" && entry.Level != strings.ToUpper(filterLevel) {
 			PutEntry(entry)
 			return
 		}
@@ -722,14 +775,6 @@ func runCount(cfg RemoteConfig, parser LogParser, filterLevel, filterLevels, fil
 		if filterChannel != "" && !strings.EqualFold(entry.Channel, filterChannel) {
 			PutEntry(entry)
 			return
-		}
-		if searchVal != "" {
-			msgMatch := containsSearchValue(entry.Message, searchVal, searchRegex, searchCaseSensitive, searchASCII, searchRe)
-			sqlMatch := entry.SQL != "" && containsSearchValue(entry.SQL, searchVal, searchRegex, searchCaseSensitive, searchASCII, searchRe)
-			if !msgMatch && !sqlMatch {
-				PutEntry(entry)
-				return
-			}
 		}
 
 		*lTotal++

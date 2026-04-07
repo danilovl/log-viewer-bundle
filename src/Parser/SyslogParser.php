@@ -58,6 +58,11 @@ final class SyslogParser implements LogInterfaceParser
         return self::PATTERN;
     }
 
+    public function getDateFormat(): string
+    {
+        return 'M d H:i:s';
+    }
+
     public function getGoParserName(?string $parserType): string
     {
         return 'syslog';

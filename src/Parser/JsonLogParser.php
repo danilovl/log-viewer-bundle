@@ -64,6 +64,11 @@ final class JsonLogParser implements LogInterfaceParser
         return '~^\{.*\}$~';
     }
 
+    public function getDateFormat(): string
+    {
+        return 'Y-m-d\TH:i:s.uP';
+    }
+
     public function getGoParserName(?string $parserType): string
     {
         return 'json';

@@ -27,9 +27,12 @@ func detectAccessLog(line []byte) bool {
 
 // extractAccessStatsFields extracts level, channel, hour from an access log line.
 func extractAccessStatsFields(line []byte, channel string) (level, ch, hour string, ok bool) {
+	if len(line) == 0 {
+		return "", "", "", false
+	}
 	openB := bytes.IndexByte(line, '[')
 	if openB == -1 {
-		return "", "", "", false
+		return "INFO", channel, "", true
 	}
 	closeB := bytes.IndexByte(line[openB:], ']')
 	if closeB < 20 {

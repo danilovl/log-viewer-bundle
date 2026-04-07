@@ -2,6 +2,8 @@
 
 namespace Danilovl\LogViewerBundle\DTO;
 
+use Danilovl\LogViewerBundle\Util\DateNormalizer;
+
 final readonly class LogViewerFilters
 {
     /**
@@ -12,6 +14,8 @@ final readonly class LogViewerFilters
         public ?array $levels,
         public ?string $channel,
         public ?string $search,
+        public ?string $dateFrom,
+        public ?string $dateTo,
         public bool $searchRegex,
         public bool $searchCaseSensitive,
         public bool $hasFilters,
@@ -24,6 +28,8 @@ final readonly class LogViewerFilters
         ?string $level,
         ?string $channel,
         ?string $search,
+        ?string $dateFrom = null,
+        ?string $dateTo = null,
         bool $searchRegex = false,
         bool $searchCaseSensitive = false,
         ?array $levels = null
@@ -31,14 +37,26 @@ final readonly class LogViewerFilters
         $normalizedLevel = self::normalize($level, true);
         $normalizedChannel = self::normalize($channel);
         $normalizedSearch = self::normalize($search);
+        $normalizedDateFrom = DateNormalizer::normalize((string) $dateFrom);
+        $normalizedDateTo = DateNormalizer::normalize((string) $dateTo);
 
-        $hasFilters = $normalizedLevel !== null || $normalizedChannel !== null || $normalizedSearch !== null || !empty($levels);
+        $normalizedDateFrom = $normalizedDateFrom !== '' ? $normalizedDateFrom : null;
+        $normalizedDateTo = $normalizedDateTo !== '' ? $normalizedDateTo : null;
+
+        $hasFilters = $normalizedLevel !== null ||
+            $normalizedChannel !== null ||
+            $normalizedSearch !== null ||
+            $normalizedDateFrom !== null ||
+            $normalizedDateTo !== null ||
+            !empty($levels);
 
         return new self(
             $normalizedLevel,
             $levels,
             $normalizedChannel,
             $normalizedSearch,
+            $normalizedDateFrom,
+            $normalizedDateTo,
             $searchRegex,
             $searchCaseSensitive,
             $hasFilters

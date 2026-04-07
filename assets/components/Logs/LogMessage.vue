@@ -11,6 +11,8 @@
 import { ref, watch, nextTick, computed } from 'vue'
 import { useI18n } from '@/i18n/useI18n'
 import { useResizeObserver } from '@/composables/useResizeObserver'
+import { useLogStore } from '@/stores/useLogStore'
+import { useHighlight } from '@/composables/useHighlight'
 
 const props = defineProps<{
   message: string
@@ -18,26 +20,15 @@ const props = defineProps<{
   highlightText?: string
 }>()
 
+const store = useLogStore()
 const { t } = useI18n()
+const { highlight } = useHighlight()
 const isOverflowing = ref(false)
 const isExpanded = ref(false)
 const messageRef = ref<HTMLElement | null>(null)
 
 const highlightedMessage = computed(() => {
-  if (!props.highlightText || !props.message) {
-    return props.message
-  }
-
-  const escapedMessage = props.message
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;')
-
-  const regex = new RegExp(`(${props.highlightText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')
-
-  return escapedMessage.replace(regex, '<mark>$1</mark>')
+  return highlight(props.message, props.highlightText || '')
 })
 
 function checkOverflow() {

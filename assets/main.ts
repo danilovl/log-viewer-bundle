@@ -30,6 +30,7 @@ import '@/style/dashboard.css'
     liveSelectedLevels: [],
     aiButtonLevels: [],
     aiChats: [],
+    regexTemplates: [],
   }
 
   setApiPrefix(config.apiPrefix)

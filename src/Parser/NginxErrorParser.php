@@ -54,6 +54,11 @@ final class NginxErrorParser implements LogInterfaceParser
         return self::PATTERN;
     }
 
+    public function getDateFormat(): string
+    {
+        return 'Y/m/d H:i:s';
+    }
+
     public function getGoParserName(?string $parserType): string
     {
         return 'nginx_error';

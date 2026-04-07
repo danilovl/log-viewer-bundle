@@ -5,6 +5,8 @@ export function useLogFilters(currentPage: Ref<number>) {
   const filterLevel = ref('')
   const filterChannel = ref('')
   const filterSearch = ref('')
+  const filterDateFrom = ref('')
+  const filterDateTo = ref('')
   const filterSearchHighlight = ref(true)
   const filterSearchRegex = ref(false)
   const filterSearchCaseSensitive = ref(false)
@@ -17,6 +19,8 @@ export function useLogFilters(currentPage: Ref<number>) {
     const urlLevel = urlParams.get('level') || ''
     const urlChannel = urlParams.get('channel') || ''
     const urlSearch = urlParams.get('search') || ''
+    const urlDateFrom = urlParams.get('dateFrom') || ''
+    const urlDateTo = urlParams.get('dateTo') || ''
     const urlSearchHighlight = urlParams.get('searchHighlight') !== '0'
     const urlSearchRegex = urlParams.get('searchRegex') === '1'
     const urlSearchCaseSensitive = urlParams.get('searchCaseSensitive') === '1'
@@ -39,6 +43,12 @@ export function useLogFilters(currentPage: Ref<number>) {
 
     if (urlSearch !== filterSearch.value) {
       filterSearch.value = urlSearch
+    }
+    if (urlDateFrom !== filterDateFrom.value) {
+      filterDateFrom.value = urlDateFrom
+    }
+    if (urlDateTo !== filterDateTo.value) {
+      filterDateTo.value = urlDateTo
     }
     filterSearchHighlight.value = urlSearchHighlight
     filterSearchRegex.value = urlSearchRegex
@@ -68,6 +78,19 @@ export function useLogFilters(currentPage: Ref<number>) {
     } else {
       url.searchParams.delete('search')
     }
+
+    if (filterDateFrom.value) {
+      url.searchParams.set('dateFrom', filterDateFrom.value)
+    } else {
+      url.searchParams.delete('dateFrom')
+    }
+
+    if (filterDateTo.value) {
+      url.searchParams.set('dateTo', filterDateTo.value)
+    } else {
+      url.searchParams.delete('dateTo')
+    }
+
     if (!filterSearchHighlight.value) {
       url.searchParams.set('searchHighlight', '0')
     } else {
@@ -101,10 +124,24 @@ export function useLogFilters(currentPage: Ref<number>) {
     window.history.pushState({}, '', url.toString())
   }
 
+  function resetFilters(): void {
+    filterLevel.value = ''
+    filterChannel.value = ''
+    filterSearch.value = ''
+    filterDateFrom.value = ''
+    filterDateTo.value = ''
+    filterSearchRegex.value = false
+    filterSearchCaseSensitive.value = false
+    filterSearchHighlight.value = true
+    currentPage.value = 1
+  }
+
   return {
     filterLevel,
     filterChannel,
     filterSearch,
+    filterDateFrom,
+    filterDateTo,
     filterSearchHighlight,
     filterSearchRegex,
     filterSearchCaseSensitive,
@@ -113,5 +150,6 @@ export function useLogFilters(currentPage: Ref<number>) {
     levels,
     syncFiltersFromUrl,
     syncFiltersToUrl,
+    resetFilters,
   }
 }

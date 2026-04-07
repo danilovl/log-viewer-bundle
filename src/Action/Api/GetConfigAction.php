@@ -3,12 +3,18 @@
 namespace Danilovl\LogViewerBundle\Action\Api;
 
 use Danilovl\LogViewerBundle\DependencyInjection\Configuration;
-use Danilovl\LogViewerBundle\Service\ConfigurationProvider;
+use Danilovl\LogViewerBundle\Service\{
+    RegexTemplateProvider,
+    ConfigurationProvider
+};
 use Symfony\Component\HttpFoundation\JsonResponse;
 
 readonly class GetConfigAction
 {
-    public function __construct(private ConfigurationProvider $configurationProvider) {}
+    public function __construct(
+        private ConfigurationProvider $configurationProvider,
+        private RegexTemplateProvider $regexTemplateProvider
+    ) {}
 
     public function __invoke(): JsonResponse
     {
@@ -42,7 +48,8 @@ readonly class GetConfigAction
             'liveLogPageInterval' => $this->configurationProvider->liveLogPageInterval,
             'liveSelectedLevels' => array_map('mb_strtolower', Configuration::LEVELS),
             'aiButtonLevels' => array_map('mb_strtoupper', $this->configurationProvider->aiButtonLevels),
-            'aiChats' => $aiChats
+            'aiChats' => $aiChats,
+            'regexTemplates' => $this->regexTemplateProvider->getTemplates()
         ];
 
         return new JsonResponse($data);

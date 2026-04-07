@@ -61,6 +61,11 @@ final class AccessLogParser implements LogInterfaceParser
         return self::PATTERN;
     }
 
+    public function getDateFormat(): string
+    {
+        return 'd/M/Y:H:i:s O';
+    }
+
     public function getGoParserName(?string $parserType): string
     {
         return 'access';

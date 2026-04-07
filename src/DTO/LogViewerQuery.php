@@ -14,6 +14,8 @@ class LogViewerQuery
         public bool $searchCaseSensitive = false,
         public int $limit = 50,
         public ?string $cursor = null,
+        public ?string $dateFrom = null,
+        public ?string $dateTo = null,
         public int $offset = 0,
         public string $sortDir = 'desc'
     ) {}

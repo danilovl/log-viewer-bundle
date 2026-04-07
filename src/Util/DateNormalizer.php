@@ -30,8 +30,9 @@ final class DateNormalizer
 
         try {
             $date = new DateTimeImmutable($timestamp);
+            $normalized = $date->format('Y-m-d H:i:s');
 
-            return $date->format('Y-m-d H:i:s');
+            return $normalized === '0000-00-00 00:00:00' ? '' : $normalized;
         } catch (Throwable) {
             // Continue to custom formats
         }
@@ -40,7 +41,9 @@ final class DateNormalizer
             try {
                 $date = DateTimeImmutable::createFromFormat($format, $timestamp);
                 if ($date !== false) {
-                    return $date->format('Y-m-d H:i:s');
+                    $normalized = $date->format('Y-m-d H:i:s');
+
+                    return $normalized === '0000-00-00 00:00:00' ? '' : $normalized;
                 }
             } catch (Throwable) {
                 continue;

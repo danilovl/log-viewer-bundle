@@ -31,7 +31,7 @@
         </tbody>
       </table>
     </div>
-    <LogPagination />
+    <LogPagination v-if="filteredEntries.length > 0" />
   </div>
 
   <AiPromptModal

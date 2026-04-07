@@ -23,6 +23,8 @@ func main() {
 	search := flag.String("search", "", "Search string in message or SQL")
 	searchRegex := flag.Bool("search-regex", false, "Whether to use regex for search")
 	searchCaseSensitive := flag.Bool("search-case-sensitive", false, "Whether to use case sensitive search")
+	dateFrom := flag.String("date-from", "", "Filter by date from (RFC3339 or YYYY-MM-DD HH:MM:SS)")
+	dateTo := flag.String("date-to", "", "Filter by date to (RFC3339 or YYYY-MM-DD HH:MM:SS)")
 	sort := flag.String("sort", "desc", "Sort direction (asc, desc)")
 	mode := flag.String("mode", "logs", "Mode: logs, stat_dashboard, stat_log (aliases: stats, stat_filter)")
 
@@ -84,13 +86,13 @@ func main() {
 
 	switch *mode {
 	case "stat_dashboard", "stats":
-		runStatsDashboard(cfg, parser)
+		runStatsDashboard(cfg, parser, *dateFrom, *dateTo)
 	case "stat_log", "stat_filter":
-		runStatsLog(cfg, parser, *level, *levels, *channel, *search, *searchRegex, *searchCaseSensitive)
+		runStatsFilter(cfg, parser, *level, *levels, *channel, *search, *searchRegex, *searchCaseSensitive, *dateFrom, *dateTo)
 	case "count":
-		runCount(cfg, parser, *level, *levels, *channel, *search, *searchRegex, *searchCaseSensitive)
+		runCount(cfg, parser, *level, *levels, *channel, *search, *searchRegex, *searchCaseSensitive, *dateFrom, *dateTo)
 	default:
-		runLogs(cfg, parser, *limit, *offset, *cursor, *level, *levels, *channel, *search, *searchRegex, *searchCaseSensitive, *sort)
+		runLogs(cfg, parser, *limit, *offset, *cursor, *level, *levels, *channel, *search, *searchRegex, *searchCaseSensitive, *dateFrom, *dateTo, *sort)
 	}
 }
 
