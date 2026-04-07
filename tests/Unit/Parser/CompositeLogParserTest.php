@@ -2,6 +2,10 @@
 
 namespace Danilovl\LogViewerBundle\Tests\Unit\Parser;
 
+use Danilovl\LogViewerBundle\Tests\Mock\Parser\{
+    CustomNoGoParser,
+    CustomGoParser
+};
 use Danilovl\LogViewerBundle\Parser\{
     CompositeLogParser,
     DoctrineParser,
@@ -108,5 +112,17 @@ final class CompositeLogParserTest extends TestCase
         $this->assertNull($parserNameUnknown);
 
         $this->assertNull($this->compositeParser->getParserName(null));
+    }
+
+    public function testIsGoParserEnabled(): void
+    {
+        $customNoGo = new CustomNoGoParser;
+        $customGo = new CustomGoParser;
+
+        $this->assertFalse($this->compositeParser->isGoParserEnabled($customNoGo));
+        $this->assertTrue($this->compositeParser->isGoParserEnabled($customGo));
+
+        $monolog = new MonologLineParser;
+        $this->assertTrue($this->compositeParser->isGoParserEnabled($monolog));
     }
 }

@@ -114,6 +114,7 @@ export interface TranslationMessages {
   showCountdown: string
   statisticEnabled: string
   chartType: string
+  refresh: string
   area: string
   bar: string
   line: string
@@ -205,6 +206,7 @@ const en: TranslationMessages = {
   generalStats: 'General stats',
   selectSource: 'Select Source',
   refreshTitle: 'Refresh current page and stats',
+  refresh: 'Refresh',
   tooLarge: 'Too large',
   invalidFormat: 'Invalid format',
   empty: 'Empty',
@@ -341,6 +343,7 @@ const zh: TranslationMessages = {
   generalStats: '总体统计',
   selectSource: '选择来源',
   refreshTitle: '刷新当前页面和统计数据',
+  refresh: '刷新',
   tooLarge: '文件过大',
   invalidFormat: '格式无效',
   empty: '空',
@@ -478,6 +481,7 @@ const hi: TranslationMessages = {
   generalStats: 'सामान्य आँकड़े',
   selectSource: 'स्रोत चुनें',
   refreshTitle: 'वर्तमान पृष्ठ और आँकड़े रीफ़्रेश करें',
+  refresh: 'ताज़ा करें',
   tooLarge: 'बहुत बड़ा',
   invalidFormat: 'अमान्य प्रारूप',
   empty: 'खाली',
@@ -616,6 +620,7 @@ const es: TranslationMessages = {
   generalStats: 'Estadísticas generales',
   selectSource: 'Seleccionar fuente',
   refreshTitle: 'Actualizar página actual y estadísticas',
+  refresh: 'Refrescar',
   tooLarge: 'Demasiado grande',
   invalidFormat: 'Formato inválido',
   empty: 'Vacío',
@@ -755,6 +760,7 @@ const fr: TranslationMessages = {
   generalStats: 'Statistiques générales',
   selectSource: 'Sélectionner une source',
   refreshTitle: 'Actualiser la page et les statistiques',
+  refresh: 'Actualiser',
   tooLarge: 'Trop volumineux',
   invalidFormat: 'Format invalide',
   empty: 'Vide',
@@ -892,6 +898,7 @@ const ar: TranslationMessages = {
   generalStats: 'إحصائيات عامة',
   selectSource: 'اختر المصدر',
   refreshTitle: 'تحديث الصفحة الحالية والإحصائيات',
+  refresh: 'تحديث',
   tooLarge: 'كبير جداً',
   invalidFormat: 'تنسيق غير صالح',
   empty: 'فارغ',
@@ -1030,6 +1037,7 @@ const pt: TranslationMessages = {
   generalStats: 'Estatísticas gerais',
   selectSource: 'Selecionar fonte',
   refreshTitle: 'Atualizar página atual e estatísticas',
+  refresh: 'Atualizar',
   tooLarge: 'Muito grande',
   invalidFormat: 'Formato inválido',
   empty: 'Vazio',
@@ -1168,6 +1176,7 @@ const ru: TranslationMessages = {
   generalStats: 'Общая статистика',
   selectSource: 'Выберите источник',
   refreshTitle: 'Обновить текущую страницу и статистику',
+  refresh: 'Обновить',
   tooLarge: 'Слишком большой',
   invalidFormat: 'Неверный формат',
   empty: 'Пустой',
@@ -1305,6 +1314,7 @@ const ja: TranslationMessages = {
   generalStats: '全体統計',
   selectSource: 'ソースを選択',
   refreshTitle: '現在のページと統計を更新',
+  refresh: '更新',
   tooLarge: 'サイズ超過',
   invalidFormat: '無効な形式',
   empty: '空',
@@ -1443,6 +1453,7 @@ const de: TranslationMessages = {
   generalStats: 'Allgemeine Statistiken',
   selectSource: 'Quelle auswählen',
   refreshTitle: 'Aktuelle Seite und Statistiken aktualisieren',
+  refresh: 'Aktualisieren',
   tooLarge: 'Zu groß',
   invalidFormat: 'Ungültiges Format',
   empty: 'Leer',

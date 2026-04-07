@@ -5,12 +5,13 @@ namespace Danilovl\LogViewerBundle\Parser;
 use Danilovl\LogViewerBundle\DTO\LogEntry;
 use Danilovl\LogViewerBundle\Interfaces\{
     LogInterfaceParser,
+    LogParserCustomInterface,
     LogParserGoPatternInterface
 };
 use Throwable;
 use Traversable;
 
-final class CompositeLogParser
+class CompositeLogParser
 {
     /** @var LogInterfaceParser[] */
     private array $parsers;
@@ -21,22 +22,9 @@ final class CompositeLogParser
     public function __construct(iterable $parsers)
     {
         $parsersArray = $parsers instanceof Traversable ? iterator_to_array($parsers) : (array) $parsers;
+        $callback = self::sortParsers();
 
-        usort($parsersArray, static function (LogInterfaceParser $a, LogInterfaceParser $b): int {
-            if ($a instanceof MonologLineParser || $b instanceof MonologLineParser) {
-                return $a instanceof MonologLineParser ? 1 : -1;
-            }
-
-            if ($a instanceof AccessLogParser || $b instanceof AccessLogParser) {
-                return $a instanceof AccessLogParser ? 1 : -1;
-            }
-
-            if ($a instanceof ApacheAccessParser || $b instanceof ApacheAccessParser) {
-                return $a instanceof ApacheAccessParser ? 1 : -1;
-            }
-
-            return 0;
-        });
+        usort($parsersArray, $callback);
 
         $this->parsers = $parsersArray;
     }
@@ -123,6 +111,22 @@ final class CompositeLogParser
         return null;
     }
 
+    public function getParser(?string $parserType): ?LogInterfaceParser
+    {
+        if ($parserType === null) {
+            return null;
+        }
+
+        foreach ($this->parsers as $parser) {
+            $isSupported = $parser->supports($parserType);
+            if ($isSupported) {
+                return $parser;
+            }
+        }
+
+        return null;
+    }
+
     public function identify(string $line): ?string
     {
         $trimmedLine = mb_trim($line);
@@ -146,5 +150,37 @@ final class CompositeLogParser
         }
 
         return null;
+    }
+
+    public function isGoParserEnabled(LogInterfaceParser $parser): bool
+    {
+        if ($parser instanceof LogParserCustomInterface) {
+            return $parser instanceof LogParserGoPatternInterface;
+        }
+
+        return true;
+    }
+
+    private static function sortParsers(): callable
+    {
+        return static function (LogInterfaceParser $a, LogInterfaceParser $b): int {
+            if ($a instanceof LogParserCustomInterface || $b instanceof LogParserCustomInterface) {
+                return $a instanceof LogParserCustomInterface ? -1 : 1;
+            }
+
+            if ($a instanceof MonologLineParser || $b instanceof MonologLineParser) {
+                return $a instanceof MonologLineParser ? 1 : -1;
+            }
+
+            if ($a instanceof AccessLogParser || $b instanceof AccessLogParser) {
+                return $a instanceof AccessLogParser ? 1 : -1;
+            }
+
+            if ($a instanceof ApacheAccessParser || $b instanceof ApacheAccessParser) {
+                return $a instanceof ApacheAccessParser ? 1 : -1;
+            }
+
+            return 0;
+        };
     }
 }

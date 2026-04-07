@@ -3,6 +3,9 @@
 namespace Danilovl\LogViewerBundle\Parser\Reader;
 
 use Danilovl\LogViewerBundle\Service\ConfigurationProvider;
+use Danilovl\LogViewerBundle\Parser\{
+    CompositeLogParser
+};
 use Danilovl\LogViewerBundle\DTO\{
     LogEntry,
     LogViewerFilters,
@@ -28,6 +31,7 @@ class LogViewer
         private readonly LogFileReader $phpReader,
         private readonly LogSourceManager $sourceManager,
         private readonly TagAwareCacheInterface $cache,
+        private readonly CompositeLogParser $compositeLogParser,
         private readonly ?LoggerInterface $logger = null
     ) {}
 
@@ -44,7 +48,7 @@ class LogViewer
         int $offset = 0,
         ?string $host = null
     ): array {
-        if ($this->configurationProvider->parserGoEnabled) {
+        if ($this->isGoParserEnabled($parserType)) {
             try {
                 return $this->goClient->getLogs(
                     filePath: $filePath,
@@ -164,7 +168,7 @@ class LogViewer
         ?string $host = null,
         ?string $timelineFormat = null
     ): LogViewerStats {
-        if ($this->configurationProvider->parserGoEnabled) {
+        if ($this->isGoParserEnabled($parserType)) {
             try {
                 $stats = $this->goClient->getStats($filePath, $parserType, $filters, $timelineFormat, $host);
             } catch (RuntimeException $e) {
@@ -191,7 +195,7 @@ class LogViewer
 
     private function doGetCount(string $filePath, ?string $parserType, ?LogViewerFilters $filters = null, ?string $host = null): int
     {
-        if ($this->configurationProvider->parserGoEnabled) {
+        if ($this->isGoParserEnabled($parserType)) {
             try {
                 return $this->goClient->getCount($filePath, $parserType, $filters, $host);
             } catch (RuntimeException $e) {
@@ -256,5 +260,24 @@ class LogViewer
         }
 
         return $key;
+    }
+
+    public function isGoParserEnabled(?string $parserType): bool
+    {
+        $parserGoEnabled = $this->configurationProvider->parserGoEnabled;
+        if (!$parserGoEnabled) {
+            return false;
+        }
+
+        if ($parserType === null) {
+            return true;
+        }
+
+        $parser = $this->compositeLogParser->getParser($parserType);
+        if ($parser === null) {
+            return true;
+        }
+
+        return $this->compositeLogParser->isGoParserEnabled($parser);
     }
 }

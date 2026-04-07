@@ -8,11 +8,16 @@ use Danilovl\LogViewerBundle\DTO\{
     LogViewerSource,
     LogViewerStats
 };
-use Danilovl\LogViewerBundle\Parser\Reader\{
-    GoLogClient,
-    LogFileReader,
-    LogSourceManager,
-    LogViewer
+use Danilovl\LogViewerBundle\Parser\{
+    CompositeLogParser,
+    Reader\GoLogClient,
+    Reader\LogFileReader,
+    Reader\LogSourceManager,
+    Reader\LogViewer
+};
+use Danilovl\LogViewerBundle\Tests\Mock\Parser\{
+    CustomNoGoParser,
+    CustomGoParser
 };
 use Danilovl\LogViewerBundle\Service\ConfigurationProvider;
 use Symfony\Contracts\Cache\TagAwareCacheInterface;
@@ -37,6 +42,8 @@ final class LogViewerTest extends TestCase
 
     private TagAwareCacheInterface&MockObject $cache;
 
+    private CompositeLogParser&MockObject $compositeLogParser;
+
     protected function setUp(): void
     {
         $configProvider = $this->createConfigurationProvider();
@@ -45,13 +52,69 @@ final class LogViewerTest extends TestCase
         $this->phpReader = $this->createMock(LogFileReader::class);
         $this->sourceManager = $this->createMock(LogSourceManager::class);
         $this->cache = $this->createMock(TagAwareCacheInterface::class);
+        $this->compositeLogParser = $this->createMock(CompositeLogParser::class);
 
         $this->viewer = new LogViewer(
             configurationProvider: $configProvider,
             goClient: $this->goClient,
             phpReader: $this->phpReader,
             sourceManager: $this->sourceManager,
-            cache: $this->cache
+            cache: $this->cache,
+            compositeLogParser: $this->compositeLogParser
+        );
+    }
+
+    /**
+     * @param class-string $parserClass
+     */
+    #[DataProvider('getEntriesCustomParserDataProvider')]
+    public function testGetEntriesCustomParser(
+        bool $parserGoEnabled,
+        string $parserClass,
+        string $parserType,
+        bool $isGoEnabledByParser,
+        bool $expectGoClientCall
+    ): void {
+        $filePath = __DIR__ . '/../../../Mock/Log/custom.log';
+        $this->setUseGo($parserGoEnabled);
+
+        $customParser = $this->createMock($parserClass);
+
+        $this->compositeLogParser
+            ->expects($expectGoClientCall ? $this->once() : $this->any())
+            ->method('getParser')
+            ->with($parserType)
+            ->willReturn($customParser);
+
+        $this->compositeLogParser
+            ->expects($this->any())
+            ->method('isGoParserEnabled')
+            ->with($customParser)
+            ->willReturn($isGoEnabledByParser);
+
+        if ($expectGoClientCall) {
+            $this->goClient
+                ->expects($this->once())
+                ->method('getLogs')
+                ->willReturn([]);
+
+            $this->phpReader
+                ->expects($this->never())
+                ->method('getEntries');
+        } else {
+            $this->phpReader
+                ->expects($this->once())
+                ->method('getEntries')
+                ->willReturn([]);
+
+            $this->goClient
+                ->expects($this->never())
+                ->method('getLogs');
+        }
+
+        $this->viewer->getEntries(
+            filePath: $filePath,
+            parserType: $parserType
         );
     }
 
@@ -185,7 +248,8 @@ final class LogViewerTest extends TestCase
             goClient: $this->goClient,
             phpReader: $this->phpReader,
             sourceManager: $this->sourceManager,
-            cache: $this->cache
+            cache: $this->cache,
+            compositeLogParser: $this->compositeLogParser
         );
 
         $this->cache->expects($this->once())
@@ -205,7 +269,8 @@ final class LogViewerTest extends TestCase
             goClient: $this->goClient,
             phpReader: $this->phpReader,
             sourceManager: $this->sourceManager,
-            cache: $this->cache
+            cache: $this->cache,
+            compositeLogParser: $this->compositeLogParser
         );
 
         $expectedStats = new LogViewerStats(10, '2026-01-01', '2026-01-01');
@@ -265,6 +330,41 @@ final class LogViewerTest extends TestCase
         ];
     }
 
+    public static function getEntriesCustomParserDataProvider(): Generator
+    {
+        yield 'CustomNoGo + GoEnabled' => [
+            true,
+            CustomNoGoParser::class,
+            'custom_no_go',
+            false,
+            false
+        ];
+
+        yield 'CustomNoGo + GoDisabled' => [
+            false,
+            CustomNoGoParser::class,
+            'custom_no_go',
+            false,
+            false
+        ];
+
+        yield 'CustomGo + GoEnabled' => [
+            true,
+            CustomGoParser::class,
+            'custom_go',
+            true,
+            true
+        ];
+
+        yield 'CustomGo + GoDisabled' => [
+            false,
+            CustomGoParser::class,
+            'custom_go',
+            true,
+            false
+        ];
+    }
+
     public static function getStatsDataProvider(): Generator
     {
         yield [
@@ -307,7 +407,8 @@ final class LogViewerTest extends TestCase
             goClient: $this->goClient,
             phpReader: $this->phpReader,
             sourceManager: $this->sourceManager,
-            cache: $this->cache
+            cache: $this->cache,
+            compositeLogParser: $this->compositeLogParser
         );
     }
 

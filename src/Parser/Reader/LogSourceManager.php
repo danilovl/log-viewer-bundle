@@ -74,7 +74,6 @@ class LogSourceManager
      */
     private function getSources(array $dirs, array $files, array $ignore, array $remoteHosts): array
     {
-        $totalFiles = $this->getTotalFilesCount();
         $sources = [];
         $fs = new Filesystem;
 
@@ -85,8 +84,7 @@ class LogSourceManager
 
             if ($isExists && $isLogFile && !$isIgnored) {
                 $sources[] = $this->createSource(
-                    path: $path,
-                    totalFiles: $totalFiles
+                    path: $path
                 );
             }
         }
@@ -107,8 +105,7 @@ class LogSourceManager
                 }
 
                 $sources[] = $this->createSource(
-                    path: $path,
-                    totalFiles: $totalFiles
+                    path: $path
                 );
             }
         }
@@ -121,8 +118,7 @@ class LogSourceManager
 
                 $sources[] = $this->createSource(
                     path: $path,
-                    host: $hostConfig->name,
-                    totalFiles: $totalFiles
+                    host: $hostConfig->name
                 );
             }
         }
@@ -250,7 +246,7 @@ class LogSourceManager
         return array_find($sources, static fn (LogViewerSource $source): bool => $source->id === $id);
     }
 
-    private function createSource(string $path, ?string $host = null, int $totalFiles = 0): LogViewerSource
+    private function createSource(string $path, ?string $host = null): LogViewerSource
     {
         $hostId = $host ?? 'local';
         $hash = sha1($hostId . $path);
@@ -278,7 +274,7 @@ class LogSourceManager
             $parser = $this->configurationProvider->parserOverrides[$path] ?? $this->configurationProvider->parserDefault;
             if ($parser === null) {
                 if ($this->configurationProvider->cacheParserDetectEnabled) {
-                    $cacheKey = LogViewer::CACHE_TAG . '.parser.' . $totalFiles . '.' . sha1($path);
+                    $cacheKey = LogViewer::CACHE_TAG . '.parser.' . $hash;
                     $parser = $this->cache->get($cacheKey, function (ItemInterface $item) use ($path) {
                         $item->tag(LogViewer::CACHE_TAG);
                         $firstLine = $this->getFirstLine($path);
@@ -320,26 +316,6 @@ class LogSourceManager
             size: $size,
             modified: $modified
         );
-    }
-
-    private function getTotalFilesCount(): int
-    {
-        $count = count($this->configurationProvider->sourceFiles);
-        $fs = new Filesystem;
-
-        foreach ($this->configurationProvider->sourceDirs as $dir) {
-            if ($fs->exists($dir)) {
-                $finder = new Finder;
-                $finder->files()->in($dir)->name('*.log');
-                $count += $finder->count();
-            }
-        }
-
-        foreach ($this->configurationProvider->sourceRemoteHosts as $hostConfig) {
-            $count += count($hostConfig->files);
-        }
-
-        return $count;
     }
 
     public function getFirstLine(string $path): ?string

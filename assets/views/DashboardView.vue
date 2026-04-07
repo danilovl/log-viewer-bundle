@@ -5,10 +5,16 @@
 
       <div v-if="store.dashboard.stats" class="dashboard-stats-wrapper">
         <div class="dashboard-info-row">
-          <div v-if="store.effective.showDashboardRefreshCountdown" class="refresh-countdown">
-            <IconClock :width="14" :height="14" />
-            <span class="countdown-label">{{ t('refreshIn') }}:</span>
-            <span class="countdown-value">{{ store.dashboard.refreshCountdown }}s</span>
+          <div class="dashboard-info-actions">
+            <div v-if="store.effective.showDashboardRefreshCountdown" class="dashboard-action-item refresh-countdown">
+              <IconClock :width="14" :height="14" />
+              <span class="countdown-label">{{ t('refreshIn') }}:</span>
+              <span class="countdown-value">{{ store.dashboard.refreshCountdown }}s</span>
+            </div>
+            <button class="dashboard-action-item btn-refresh" @click="handleRefresh">
+              <IconRefresh :width="14" :height="14" />
+              <span>{{ t('refresh') }}</span>
+            </button>
           </div>
           <div v-if="formattedCalculated" class="dashboard-date">{{ t('dataTime') }}: {{ formattedCalculated }}</div>
         </div>
@@ -203,6 +209,7 @@ import IconFile from '@/components/icons/IconFile.vue'
 import IconAlert from '@/components/icons/IconAlert.vue'
 import IconPackage from '@/components/icons/IconPackage.vue'
 import IconClock from '@/components/icons/IconClock.vue'
+import IconRefresh from '@/components/icons/IconRefresh.vue'
 import IconLayers from '@/components/icons/IconLayers.vue'
 import IconMenu from '@/components/icons/IconMenu.vue'
 import IconStar from '@/components/icons/IconStar.vue'
@@ -321,6 +328,10 @@ function handleBookmarkClick(source: SourceInfo): void {
     params: { sourceId: source.id },
     query: { bookmarks: '1' },
   })
+}
+
+function handleRefresh(): void {
+  store.loadDashboardStats()
 }
 
 onMounted(() => {

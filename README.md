@@ -571,6 +571,7 @@ namespace App\Parser;
 use Danilovl\LogViewerBundle\DTO\LogEntry;
 use Danilovl\LogViewerBundle\Interfaces\LogInterfaceParser;
 use Danilovl\LogViewerBundle\Interfaces\LogParserGoPatternInterface;
+use Danilovl\LogViewerBundle\Util\DateNormalizer;
 
 class MyCustomParser implements LogInterfaceParser, LogParserGoPatternInterface
 {
@@ -578,14 +579,26 @@ class MyCustomParser implements LogInterfaceParser, LogParserGoPatternInterface
 
     public function parse(string $line, string $filename): LogEntry
     {
-        preg_match(self::PATTERN, $line, $matches);
+        $match = preg_match(self::PATTERN, $line, $matches);
+        if (!$match) {
+            return new LogEntry(
+                timestamp: '',
+                level: 'INFO',
+                channel: 'custom',
+                message: $line,
+                file: $filename,
+                normalizedTimestamp: '',
+                context: []
+            );
+        }
 
         return new LogEntry(
-            timestamp: $matches['timestamp'] ?? '',
+            timestamp: $matches['timestamp'],
             level: $matches['level'] ?? 'INFO',
             channel: 'custom',
             message: $matches['message'] ?? $line,
             file: $filename,
+            normalizedTimestamp: DateNormalizer::normalize($matches['timestamp']),
             context: []
         );
     }
@@ -603,6 +616,11 @@ class MyCustomParser implements LogInterfaceParser, LogParserGoPatternInterface
     public function getPattern(): string
     {
         return self::PATTERN;
+    }
+
+    public function getDateFormat(): string
+    {
+        return 'Y-m-d H:i:s';
     }
 
     public function getGoParserName(?string $parserType): string
@@ -643,3 +661,4 @@ danilovl_log_viewer:
 ## License
 
 The LogViewerBundle is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+

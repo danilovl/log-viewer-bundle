@@ -106,11 +106,6 @@ export interface ServerConfig {
   sourceAllowDelete: boolean
   sourceAllowDownload: boolean
   apiPrefix: string
-  sourceMaxFileSize: number | null
-  parserGoEnabled: boolean
-  cacheParserDetectEnabled: boolean
-  cacheStatisticEnabled: boolean
-  cacheStatisticInterval: number
   logPageAutoRefreshEnabled: boolean
   logPageAutoRefreshInterval: number | null
   logPageAutoRefreshShowCountdown: boolean
