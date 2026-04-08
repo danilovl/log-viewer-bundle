@@ -10,6 +10,7 @@ export function useLogSource() {
     path: '',
     host: '',
     canDelete: false,
+    isDeletable: false,
     canDownload: false,
     parserType: '',
     size: 0,

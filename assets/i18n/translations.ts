@@ -73,6 +73,8 @@ export interface TranslationMessages {
   fileSizeExceeds: string
   couldNotDetect: string
   fileIsEmpty: string
+  noDeletePermission: string
+  noDownloadPermission: string
   deleteConfirm: string
   deleteError: string
   deleteErrorGeneric: string
@@ -213,6 +215,8 @@ const en: TranslationMessages = {
   fileSizeExceeds: 'File size exceeds the configured limit.',
   couldNotDetect: 'Could not auto-detect log format. Use --parser or --pattern.',
   fileIsEmpty: 'File is empty',
+  noDeletePermission: 'No permission to delete',
+  noDownloadPermission: 'No permission to download',
   deleteConfirm: 'Are you sure you want to delete the log file "{name}"? This action cannot be undone.',
   deleteError: 'Error deleting file',
   deleteErrorGeneric: 'An error occurred while deleting the file.',
@@ -350,6 +354,8 @@ const zh: TranslationMessages = {
   fileSizeExceeds: '文件大小超过配置限制。',
   couldNotDetect: '无法自动检测日志格式。请使用 --parser 或 --pattern。',
   fileIsEmpty: '文件为空',
+  noDeletePermission: '没有删除权限',
+  noDownloadPermission: '没有下载权限',
   deleteConfirm: '您确定要删除日志文件 "{name}" 吗？此操作不可撤销。',
   deleteError: '删除文件时出错',
   deleteErrorGeneric: '删除文件时发生错误。',
@@ -488,6 +494,8 @@ const hi: TranslationMessages = {
   fileSizeExceeds: 'फ़ाइल का आकार कॉन्फ़िगर की गई सीमा से अधिक है।',
   couldNotDetect: 'लॉग प्रारूप स्वतः पता नहीं चल सका। --parser или --pattern का उपयोग करें।',
   fileIsEmpty: 'फ़ाइल खाली है',
+  noDeletePermission: 'हटाने की अनुमति नहीं है',
+  noDownloadPermission: 'डाउनलोड करने की अनुमति नहीं है',
   deleteConfirm: 'क्या आप वाकई लॉग फ़ाइल "{name}" को हटाना चाहते हैं? यह क्रिया पूर्ववत नहीं की जा सकती।',
   deleteError: 'फ़ाइल हटाने में त्रुटि',
   deleteErrorGeneric: 'फ़ाइल हटाते समय एक त्रुटи हुई।',
@@ -627,6 +635,8 @@ const es: TranslationMessages = {
   fileSizeExceeds: 'El tamaño del archivo excede el límite configurado.',
   couldNotDetect: 'No se pudo detectar el formato del log. Use --parser o --pattern.',
   fileIsEmpty: 'El archivo está vacío',
+  noDeletePermission: 'Sin permiso para eliminar',
+  noDownloadPermission: 'Sin permiso para descargar',
   deleteConfirm: '¿Está seguro de que desea eliminar el archivo de log "{name}"? Esta acción no se puede deshacer.',
   deleteError: 'Error al eliminar el archivo',
   deleteErrorGeneric: 'Ocurrió un error al eliminar el archivo.',
@@ -767,6 +777,8 @@ const fr: TranslationMessages = {
   fileSizeExceeds: 'La taille du fichier dépasse la limite configurée.',
   couldNotDetect: 'Impossible de détecter le format du log. Utilisez --parser ou --pattern.',
   fileIsEmpty: 'Le fichier est vide',
+  noDeletePermission: 'Pas de permission pour supprimer',
+  noDownloadPermission: 'Pas de permission pour télécharger',
   deleteConfirm: 'Êtes-vous sûr de vouloir supprimer le fichier log "{name}" ? Cette action est irréversible.',
   deleteError: 'Erreur lors de la suppression du fichier',
   deleteErrorGeneric: 'Une erreur est survenue lors de la suppression du fichier.',
@@ -905,6 +917,8 @@ const ar: TranslationMessages = {
   fileSizeExceeds: 'حجم الملف يتجاوز الحد المكوّن.',
   couldNotDetect: 'تعذر الكشف التلقائي عن تنسيق السجل. استخدم --parser أو --pattern.',
   fileIsEmpty: 'الملف فارغ',
+  noDeletePermission: 'لا توجد صلاحية للحذف',
+  noDownloadPermission: 'لا توجد صلاحية للتحميل',
   deleteConfirm: 'هل أنت متأكد أنك تريد حذف ملف السجل "{name}"؟ لا يمكن التراجع عن هذا الإجراء.',
   deleteError: 'خطأ في حذف الملف',
   deleteErrorGeneric: 'حدث خطأ أثناء حذف الملف.',
@@ -1043,7 +1057,9 @@ const pt: TranslationMessages = {
   empty: 'Vazio',
   fileSizeExceeds: 'O tamanho do arquivo excede o limite configurado.',
   couldNotDetect: 'Não foi possível detectar o formato do log. Use --parser ou --pattern.',
-  fileIsEmpty: 'O arquivo está vazio',
+  fileIsEmpty: 'O arquivo está vacío',
+  noDeletePermission: 'Sem permissão para excluir',
+  noDownloadPermission: 'Sem permissão para baixar',
   deleteConfirm: 'Tem certeza de que deseja excluir o arquivo de log "{name}"? Esta ação não pode ser desfeita.',
   deleteError: 'Erro ao excluir o arquivo',
   deleteErrorGeneric: 'Ocorreu um erro ao excluir o arquivo.',
@@ -1183,6 +1199,8 @@ const ru: TranslationMessages = {
   fileSizeExceeds: 'Размер файла превышает настроенный лимит.',
   couldNotDetect: 'Не удалось автоматически определить формат лога. Используйте --parser или --pattern.',
   fileIsEmpty: 'Файл пуст',
+  noDeletePermission: 'Нет прав на удаление',
+  noDownloadPermission: 'Нет прав на скачивание',
   deleteConfirm: 'Вы уверены, что хотите удалить файл лога "{name}"? Это действие нельзя отменить.',
   deleteError: 'Ошибка при удалении файла',
   deleteErrorGeneric: 'Произошла ошибка при удалении файла.',
@@ -1321,6 +1339,8 @@ const ja: TranslationMessages = {
   fileSizeExceeds: 'ファイルサイズが設定された上限を超えています。',
   couldNotDetect: 'ログ形式を自動検出できませんでした。--parser または --pattern を使用してください。',
   fileIsEmpty: 'ファイルは空です',
+  noDeletePermission: '削除権限がありません',
+  noDownloadPermission: 'ダウンロード権限がありません',
   deleteConfirm: 'ログファイル「{name}」を削除してもよろしいですか？この操作は元に戻せません。',
   deleteError: 'ファイルの削除エラー',
   deleteErrorGeneric: 'ファイルの削除中にエラーが発生しました。',
@@ -1460,6 +1480,8 @@ const de: TranslationMessages = {
   fileSizeExceeds: 'Die Dateigröße überschreitet das konfigurierte Limit.',
   couldNotDetect: 'Log-Format konnte nicht automatisch erkannt werden. Verwenden Sie --parser oder --pattern.',
   fileIsEmpty: 'Die Datei ist leer',
+  noDeletePermission: 'Keine Berechtigung zum Löschen',
+  noDownloadPermission: 'Keine Berechtigung zum Herunterladen',
   deleteConfirm:
     'Sind Sie sicher, dass Sie die Log-Datei „{name}" löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden.',
   deleteError: 'Fehler beim Löschen der Datei',

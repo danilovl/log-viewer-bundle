@@ -89,6 +89,7 @@ export async function fetchLogStats(
   parserType: string
   host: string
   canDelete: boolean
+  isDeletable: boolean
   canDownload: boolean
   duration: number
 }> {
@@ -126,6 +127,7 @@ export async function fetchLogStats(
     parserType: response.data.parserType,
     host: response.data.host,
     canDelete: response.data.canDelete,
+    isDeletable: response.data.isDeletable,
     canDownload: response.data.canDownload,
     duration,
   }
@@ -150,6 +152,7 @@ export async function fetchLogEntries(
   path: string
   size: number
   canDelete: boolean
+  isDeletable: boolean
   canDownload: boolean
   duration: number
 }> {
@@ -193,6 +196,7 @@ export async function fetchLogEntries(
     path: response.data.path,
     size: response.data.size,
     canDelete: response.data.canDelete,
+    isDeletable: response.data.isDeletable,
     canDownload: response.data.canDownload,
     duration,
   }

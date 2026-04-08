@@ -7,7 +7,9 @@ export interface TreeFile {
   isEmpty: boolean
   isTooLarge: boolean
   canDelete: boolean
+  isDeletable: boolean
   canDownload: boolean
+  isDownloadable: boolean
   size: number
 }
 
@@ -56,7 +58,9 @@ export interface SourceInfo {
   isEmpty: boolean
   isTooLarge: boolean
   canDelete: boolean
+  isDeletable: boolean
   canDownload: boolean
+  isDownloadable: boolean
   calculatedAt?: string
 }
 

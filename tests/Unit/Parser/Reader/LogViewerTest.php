@@ -130,7 +130,9 @@ final class LogViewerTest extends TestCase
             isEmpty: false,
             isTooLarge: false,
             canDelete: false,
+            isDeletable: false,
             canDownload: false,
+            isDownloadable: false,
             size: 1_024,
             modified: '2026-03-31T20:45:00+00:00'
         );

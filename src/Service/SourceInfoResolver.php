@@ -122,8 +122,10 @@ readonly class SourceInfoResolver
             host: $host,
             isEmpty: $isEmpty,
             size: $size,
-            canDelete: FileActionHelper::canDelete($filePath, $this->configurationProvider->sourceAllowDelete),
-            canDownload: FileActionHelper::canDownload($filePath, $this->configurationProvider->sourceAllowDownload),
+            canDelete: $this->configurationProvider->sourceAllowDelete,
+            isDeletable: FileActionHelper::canDelete($filePath, $this->configurationProvider->sourceAllowDelete),
+            canDownload: $this->configurationProvider->sourceAllowDownload,
+            isDownloadable: FileActionHelper::canDownload($filePath, $this->configurationProvider->sourceAllowDownload),
         );
     }
 }

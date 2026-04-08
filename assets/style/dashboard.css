@@ -2174,6 +2174,13 @@ body {
   background: var(--level-error-bg);
 }
 
+.download-action:disabled,
+.delete-action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 .welcome-screen {
   display: flex;
   flex-direction: column;

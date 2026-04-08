@@ -29,7 +29,7 @@ It supports log reading through standard PHP methods as well as a high-performan
 - **Remote Logs**: View logs from remote servers via SSH/SFTP.
 - **REST API**: Full-featured API for integration and custom dashboard development.
 - **Log Notifications**: Real-time notifications for log entries matching specific rules via Symfony Notifier.
-- **File Management**: Ability to delete log files directly from the dashboard.
+- **File Management**: Ability to download and delete log files directly from the dashboard.
 - **Ignore Files**: Flexible exclusion of specific log files or directories.
 
 ## Screenshots
@@ -105,8 +105,10 @@ danilovl_log_viewer:
         # Max file size to be read in bytes (default: null, read entire file)
         max_file_size: null
         # Allow log file deletion from the dashboard (default: false)
+        # Note: Even if enabled, the file must be writable by the web server.
         allow_delete: false
         # Allow log file download from the dashboard (default: false)
+        # Note: Even if enabled, the file must be readable by the web server.
         allow_download: false
         # Remote hosts configuration (default: [])
         remote_hosts:
@@ -661,4 +663,3 @@ danilovl_log_viewer:
 ## License
 
 The LogViewerBundle is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
-

@@ -41,6 +41,10 @@ readonly class GetDashboardStatsAction
                     'isValid' => false,
                     'isEmpty' => $source->isEmpty,
                     'isTooLarge' => $source->isTooLarge,
+                    'canDelete' => $source->canDelete,
+                    'isDeletable' => $source->isDeletable,
+                    'canDownload' => $source->canDownload,
+                    'isDownloadable' => $source->isDownloadable,
                 ];
 
                 continue;
@@ -84,6 +88,10 @@ readonly class GetDashboardStatsAction
                     'isValid' => true,
                     'isEmpty' => $source->isEmpty,
                     'isTooLarge' => $source->isTooLarge,
+                    'canDelete' => $source->canDelete,
+                    'isDeletable' => $source->isDeletable,
+                    'canDownload' => $source->canDownload,
+                    'isDownloadable' => $source->isDownloadable,
                 ];
             } catch (Exception) {
                 $totalStats['sources'][] = [
@@ -96,6 +104,10 @@ readonly class GetDashboardStatsAction
                     'isValid' => false,
                     'isEmpty' => $source->isEmpty,
                     'isTooLarge' => $source->isTooLarge,
+                    'canDelete' => $source->canDelete,
+                    'isDeletable' => $source->isDeletable,
+                    'canDownload' => $source->canDownload,
+                    'isDownloadable' => $source->isDownloadable,
                 ];
             }
         }

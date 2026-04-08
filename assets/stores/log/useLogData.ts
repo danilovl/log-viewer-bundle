@@ -17,6 +17,7 @@ interface SourceState {
   path: string
   host: string
   canDelete: boolean
+  isDeletable: boolean
   canDownload: boolean
   parserType: string
   size: number
@@ -152,6 +153,7 @@ export function useLogData(options: LogDataOptions) {
       source.host = result.host || ''
       source.size = result.data.size || 0
       source.canDelete = result.canDelete
+      source.isDeletable = result.isDeletable
       source.canDownload = result.canDownload
 
       if (result.duration > 500) {
@@ -291,6 +293,7 @@ export function useLogData(options: LogDataOptions) {
       source.path = result.path || source.path
       source.size = result.size || 0
       source.canDelete = result.canDelete
+      source.isDeletable = result.isDeletable
       source.canDownload = result.canDownload
 
       if (withStats || (!pagination.isCountSlow && !isPagination)) {

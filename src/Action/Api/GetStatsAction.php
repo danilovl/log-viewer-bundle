@@ -59,7 +59,9 @@ readonly class GetStatsAction
             'parserType' => $sourceInfo->parserType,
             'host' => $sourceInfo->host,
             'canDelete' => $sourceInfo->canDelete,
+            'isDeletable' => $sourceInfo->isDeletable,
             'canDownload' => $sourceInfo->canDownload,
+            'isDownloadable' => $sourceInfo->isDownloadable,
         ]);
     }
 }

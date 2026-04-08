@@ -26,11 +26,10 @@
           :class="fileClasses(file)"
           :data-id="file.id"
           :data-name="file.name"
-          :title="fileTitle(file)"
           :style="{ paddingLeft: depth * 12 + 12 + 'px' }"
         >
-          <IconFile class-name="tree-icon" :width="16" :height="16" />
-          <div class="tree-file-name-wrapper">
+          <IconFile class-name="tree-icon" :width="16" :height="16" :title="fileTitle(file)" />
+          <div class="tree-file-name-wrapper" :title="fileTitle(file)">
             <span class="tree-file-name">{{ file.name }}</span>
             <span v-if="settingsStore.menuShowFileSize ?? true" class="tree-file-size">{{
               formatBytes(file.size)
@@ -42,18 +41,17 @@
             @click.stop="toggleDropdown(file.id, $event)"
           >
             <IconSettings class-name="settings-icon" :width="14" :height="14" />
-            <div :class="['settings-dropdown', { show: store.activeFileDropdownId === file.id }]">
-              <button
-                v-if="file.canDownload"
-                class="download-action"
-                :title="t('download')"
-                @click.stop="handleDownload(file)"
-              >
-                <IconDownload :width="14" :height="14" />
-              </button>
-              <button v-if="file.canDelete" class="delete-action" :title="t('delete')" @click.stop="handleDelete(file)">
-                <IconDelete :width="14" :height="14" />
-              </button>
+            <div :class="['settings-dropdown', { show: store.activeFileDropdownId === file.id }]" :title="''">
+              <span v-if="file.canDownload" :title="file.isDownloadable ? t('download') : t('noDownloadPermission')">
+                <button class="download-action" :disabled="!file.isDownloadable" @click.stop="handleDownload(file)">
+                  <IconDownload :width="14" :height="14" />
+                </button>
+              </span>
+              <span v-if="file.canDelete" :title="file.isDeletable ? t('delete') : t('noDeletePermission')">
+                <button class="delete-action" :disabled="!file.isDeletable" @click.stop="handleDelete(file)">
+                  <IconDelete :width="14" :height="14" />
+                </button>
+              </span>
             </div>
           </div>
         </div>

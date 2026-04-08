@@ -41,7 +41,9 @@ readonly class GetEntriesAction
                 'path' => $sourceInfo->filePath,
                 'size' => $sourceInfo->size,
                 'canDelete' => $sourceInfo->canDelete,
+                'isDeletable' => $sourceInfo->isDeletable,
                 'canDownload' => $sourceInfo->canDownload,
+                'isDownloadable' => $sourceInfo->isDownloadable,
             ]);
         }
 
@@ -92,7 +94,9 @@ readonly class GetEntriesAction
             'path' => $sourceInfo->filePath,
             'size' => $sourceInfo->size,
             'canDelete' => $sourceInfo->canDelete,
+            'isDeletable' => $sourceInfo->isDeletable,
             'canDownload' => $sourceInfo->canDownload,
+            'isDownloadable' => $sourceInfo->isDownloadable,
         ]);
     }
 }

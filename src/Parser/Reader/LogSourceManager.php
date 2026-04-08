@@ -261,7 +261,9 @@ class LogSourceManager
         $parser = null;
         $isValid = true;
         $canDelete = false;
+        $isDeletable = false;
         $canDownload = false;
+        $isDownloadable = false;
 
         if ($host !== null) {
             $hostConfig = $this->configurationProvider->findRemoteHost($host);
@@ -270,34 +272,45 @@ class LogSourceManager
             }
 
             $isTooLarge = $maxFileSize !== null && $size > $maxFileSize;
-        } elseif (is_file($path) && is_readable($path)) {
-            $parser = $this->configurationProvider->parserOverrides[$path] ?? $this->configurationProvider->parserDefault;
-            if ($parser === null) {
-                if ($this->configurationProvider->cacheParserDetectEnabled) {
-                    $cacheKey = LogViewer::CACHE_TAG . '.parser.' . $hash;
-                    $parser = $this->cache->get($cacheKey, function (ItemInterface $item) use ($path) {
-                        $item->tag(LogViewer::CACHE_TAG);
-                        $firstLine = $this->getFirstLine($path);
 
-                        return $firstLine !== null ? $this->compositeLogParser->identify($firstLine) : null;
-                    });
-                } else {
-                    $line = $this->getFirstLine($path);
-                    if ($line !== null) {
-                        $parser = $this->compositeLogParser->identify($line);
+            $canDelete = $this->configurationProvider->sourceAllowDelete;
+            $isDeletable = $canDelete;
+            $canDownload = $this->configurationProvider->sourceAllowDownload;
+            $isDownloadable = $canDownload;
+        } elseif (is_file($path)) {
+            if (is_readable($path)) {
+                $parser = $this->configurationProvider->parserOverrides[$path] ?? $this->configurationProvider->parserDefault;
+                if ($parser === null) {
+                    if ($this->configurationProvider->cacheParserDetectEnabled) {
+                        $cacheKey = LogViewer::CACHE_TAG . '.parser.' . $hash;
+                        $parser = $this->cache->get($cacheKey, function (ItemInterface $item) use ($path) {
+                            $item->tag(LogViewer::CACHE_TAG);
+                            $firstLine = $this->getFirstLine($path);
+
+                            return $firstLine !== null ? $this->compositeLogParser->identify($firstLine) : null;
+                        });
+                    } else {
+                        $line = $this->getFirstLine($path);
+                        if ($line !== null) {
+                            $parser = $this->compositeLogParser->identify($line);
+                        }
                     }
                 }
+
+                $mtime = filemtime($path);
+                $modified = date('c', (int) $mtime);
+                $size = (int) filesize($path);
             }
 
-            $mtime = filemtime($path);
-            $modified = date('c', (int) $mtime);
-            $size = (int) filesize($path);
             $isEmpty = $size === 0;
             $isTooLarge = $maxFileSize !== null && $size > $maxFileSize;
-            $isValid = ($parser !== null || $isEmpty) && !$isTooLarge;
+            $isValid = ($parser !== null || $isEmpty) && !$isTooLarge && is_readable($path);
 
-            $canDelete = FileActionHelper::canDelete($path, $this->configurationProvider->sourceAllowDelete);
-            $canDownload = FileActionHelper::canDownload($path, $this->configurationProvider->sourceAllowDownload);
+            $canDelete = $this->configurationProvider->sourceAllowDelete;
+            $isDeletable = FileActionHelper::canDelete($path, $this->configurationProvider->sourceAllowDelete);
+
+            $canDownload = $this->configurationProvider->sourceAllowDownload;
+            $isDownloadable = FileActionHelper::canDownload($path, $this->configurationProvider->sourceAllowDownload);
         } else {
             $isValid = false;
         }
@@ -312,7 +325,9 @@ class LogSourceManager
             isEmpty: $isEmpty,
             isTooLarge: $isTooLarge,
             canDelete: $canDelete,
+            isDeletable: $isDeletable,
             canDownload: $canDownload,
+            isDownloadable: $isDownloadable,
             size: $size,
             modified: $modified
         );
