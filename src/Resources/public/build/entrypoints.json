@@ -2,10 +2,10 @@
   "entrypoints": {
     "log_viewer": {
       "css": [
-        "/bundles/logviewer/build/log_viewer.41d6f107.css"
+        "/bundles/logviewer/build/log_viewer.35930679.css"
       ],
       "js": [
-        "/bundles/logviewer/build/log_viewer.5f35c375.js"
+        "/bundles/logviewer/build/log_viewer.559a159d.js"
       ]
     }
   }
