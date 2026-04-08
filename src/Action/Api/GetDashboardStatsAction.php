@@ -45,6 +45,7 @@ readonly class GetDashboardStatsAction
                     'isDeletable' => $source->isDeletable,
                     'canDownload' => $source->canDownload,
                     'isDownloadable' => $source->isDownloadable,
+                    'isReadable' => $source->isReadable,
                 ];
 
                 continue;
@@ -92,6 +93,7 @@ readonly class GetDashboardStatsAction
                     'isDeletable' => $source->isDeletable,
                     'canDownload' => $source->canDownload,
                     'isDownloadable' => $source->isDownloadable,
+                    'isReadable' => $source->isReadable,
                 ];
             } catch (Exception) {
                 $totalStats['sources'][] = [
@@ -108,6 +110,7 @@ readonly class GetDashboardStatsAction
                     'isDeletable' => $source->isDeletable,
                     'canDownload' => $source->canDownload,
                     'isDownloadable' => $source->isDownloadable,
+                    'isReadable' => $source->isReadable,
                 ];
             }
         }

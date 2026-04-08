@@ -264,6 +264,7 @@ class LogSourceManager
         $isDeletable = false;
         $canDownload = false;
         $isDownloadable = false;
+        $isReadable = false;
 
         if ($host !== null) {
             $hostConfig = $this->configurationProvider->findRemoteHost($host);
@@ -277,6 +278,7 @@ class LogSourceManager
             $isDeletable = $canDelete;
             $canDownload = $this->configurationProvider->sourceAllowDownload;
             $isDownloadable = $canDownload;
+            $isReadable = true;
         } elseif (is_file($path)) {
             if (is_readable($path)) {
                 $parser = $this->configurationProvider->parserOverrides[$path] ?? $this->configurationProvider->parserDefault;
@@ -311,6 +313,8 @@ class LogSourceManager
 
             $canDownload = $this->configurationProvider->sourceAllowDownload;
             $isDownloadable = FileActionHelper::canDownload($path, $this->configurationProvider->sourceAllowDownload);
+
+            $isReadable = FileActionHelper::canRead($path);
         } else {
             $isValid = false;
         }
@@ -328,6 +332,7 @@ class LogSourceManager
             isDeletable: $isDeletable,
             canDownload: $canDownload,
             isDownloadable: $isDownloadable,
+            isReadable: $isReadable,
             size: $size,
             modified: $modified
         );

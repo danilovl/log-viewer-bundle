@@ -19,6 +19,7 @@ final class LogEntry
         public readonly ?array $parameters = null,
         public readonly ?array $context = null,
         public readonly ?string $sourceId = null,
+        public readonly ?int $lineNumber = null,
     ) {
         $this->level = mb_strtoupper($level);
     }
@@ -26,16 +27,34 @@ final class LogEntry
     public function withSourceId(string $sourceId): self
     {
         return new self(
-            $this->timestamp,
-            $this->level,
-            $this->channel,
-            $this->message,
-            $this->file,
-            $this->normalizedTimestamp,
-            $this->sql,
-            $this->parameters,
-            $this->context,
-            $sourceId
+            timestamp: $this->timestamp,
+            level: $this->level,
+            channel: $this->channel,
+            message: $this->message,
+            file: $this->file,
+            normalizedTimestamp: $this->normalizedTimestamp,
+            sql: $this->sql,
+            parameters: $this->parameters,
+            context: $this->context,
+            sourceId: $sourceId,
+            lineNumber: $this->lineNumber
+        );
+    }
+
+    public function withLineNumber(int $lineNumber): self
+    {
+        return new self(
+            timestamp: $this->timestamp,
+            level: $this->level,
+            channel: $this->channel,
+            message: $this->message,
+            file: $this->file,
+            normalizedTimestamp: $this->normalizedTimestamp,
+            sql: $this->sql,
+            parameters: $this->parameters,
+            context: $this->context,
+            sourceId: $this->sourceId,
+            lineNumber: $lineNumber
         );
     }
 }

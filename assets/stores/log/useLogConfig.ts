@@ -22,6 +22,7 @@ export function useLogConfig() {
   const aiButtonLevels = ref<string[]>([])
   const aiChats = ref<AiChat[]>([])
   const regexTemplates = ref<RegexTemplate[]>([])
+  const showReaderButton = ref(true)
 
   async function loadConfig(): Promise<void> {
     const response: ServerConfig = await fetchConfig()
@@ -82,6 +83,7 @@ export function useLogConfig() {
     aiButtonLevels,
     aiChats,
     regexTemplates,
+    showReaderButton,
     loadConfig,
     initFromConfig,
   }

@@ -17,6 +17,7 @@ final class LogViewerSource
         public bool $isDeletable,
         public bool $canDownload,
         public bool $isDownloadable,
+        public bool $isReadable,
         public int $size,
         public string $modified,
     ) {}

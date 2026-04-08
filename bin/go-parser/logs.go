@@ -333,6 +333,7 @@ func runLogs(cfg RemoteConfig, parser LogParser, limit, offset int, cursor, leve
 	}
 
 	var mmapData []byte
+	totalLines := 0
 
 	if cfg.Host == "" && isGzipFile(cfg.FilePath) {
 		data, err := readGzipFull(cfg.FilePath)
@@ -341,6 +342,10 @@ func runLogs(cfg RemoteConfig, parser LogParser, limit, offset int, cursor, leve
 			os.Exit(1)
 		}
 		mmapData = data
+		totalLines = bytes.Count(mmapData, []byte("\n"))
+		if len(mmapData) > 0 && mmapData[len(mmapData)-1] != '\n' {
+			totalLines++
+		}
 	} else {
 		f, _, err := OpenLogFile(cfg)
 		if err != nil {
@@ -353,7 +358,10 @@ func runLogs(cfg RemoteConfig, parser LogParser, limit, offset int, cursor, leve
 			if osF, ok := f.(*os.File); ok {
 				if data, mErr := Mmap(osF); mErr == nil && len(data) > 0 {
 					mmapData = data
-					defer Munmap(mmapData)
+					totalLines = bytes.Count(mmapData, []byte("\n"))
+					if len(mmapData) > 0 && mmapData[len(mmapData)-1] != '\n' {
+						totalLines++
+					}
 					if sort == "asc" {
 						MadviseSequential(mmapData)
 					}
@@ -368,8 +376,21 @@ func runLogs(cfg RemoteConfig, parser LogParser, limit, offset int, cursor, leve
 
 	collected := 0
 	skipped := 0
+	currentLineNumber := 0
+	if sort == "desc" {
+		currentLineNumber = totalLines - 1
+	}
 
 	processLine := func(line []byte) bool {
+		numLines := bytes.Count(line, []byte("\n")) + 1
+		defer func() {
+			if sort == "desc" {
+				currentLineNumber -= numLines
+			} else {
+				currentLineNumber += numLines
+			}
+		}()
+
 		if len(line) == 0 {
 			return true
 		}
@@ -404,6 +425,11 @@ func runLogs(cfg RemoteConfig, parser LogParser, limit, offset int, cursor, leve
 		entry := parser.Parse(line, fileName, true, true)
 		if entry == nil {
 			return true
+		}
+		if sort == "desc" {
+			entry.LineNumber = currentLineNumber - (numLines - 1)
+		} else {
+			entry.LineNumber = currentLineNumber
 		}
 		
 		if !parser.IsNewEntry(line) && entry.Timestamp == "" {
@@ -493,16 +519,19 @@ func runLogs(cfg RemoteConfig, parser LogParser, limit, offset int, cursor, leve
 			if sort == "asc" {
 				if cursorOffset > 0 {
 					scanData = mmapData[cursorOffset:]
+					currentLineNumber = bytes.Count(mmapData[:cursorOffset], []byte("\n"))
 				}
 			} else {
 				if cursorOffset < len(mmapData) {
 					scanData = mmapData[:cursorOffset]
+					currentLineNumber = bytes.Count(mmapData[:cursorOffset], []byte("\n"))
 				}
 			}
 		} else if !dFrom.IsZero() && sort == "asc" {
 			cursorOffset := binarySearchMmap(mmapData, dFrom, isNewEntry)
 			if cursorOffset > 0 {
 				scanData = mmapData[cursorOffset:]
+				currentLineNumber = bytes.Count(mmapData[:cursorOffset], []byte("\n"))
 			}
 		}
 

@@ -151,6 +151,34 @@
               >
                 <IconFile :width="18" :height="18" />
               </div>
+              <div class="source-card-actions">
+                <button
+                  class="action-btn view-btn"
+                  :disabled="!source.isReadable"
+                  v-tooltip="source.isReadable ? t('viewContent') : t('noReadPermission')"
+                  @click.stop="handleViewContent(source)"
+                >
+                  <IconEye :width="14" :height="14" />
+                </button>
+                <button
+                  v-if="source.canDownload"
+                  class="action-btn download-btn"
+                  :disabled="!source.isDownloadable"
+                  v-tooltip="source.isDownloadable ? t('download') : t('noDownloadPermission')"
+                  @click.stop="handleDownload(source)"
+                >
+                  <IconDownload :width="14" :height="14" />
+                </button>
+                <button
+                  v-if="source.canDelete"
+                  class="action-btn delete-btn"
+                  :disabled="!source.isDeletable"
+                  v-tooltip="source.isDeletable ? t('delete') : t('noDeletePermission')"
+                  @click.stop="handleDelete(source)"
+                >
+                  <IconDelete :width="14" :height="14" />
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -213,6 +241,9 @@ import IconRefresh from '@/components/icons/IconRefresh.vue'
 import IconLayers from '@/components/icons/IconLayers.vue'
 import IconMenu from '@/components/icons/IconMenu.vue'
 import IconStar from '@/components/icons/IconStar.vue'
+import IconEye from '@/components/icons/IconEye.vue'
+import IconDownload from '@/components/icons/IconDownload.vue'
+import IconDelete from '@/components/icons/IconDelete.vue'
 import LogChart from '@/components/Dashboard/LogChart.vue'
 import DashboardSkeleton from '@/components/Dashboard/DashboardSkeleton.vue'
 
@@ -332,6 +363,19 @@ function handleBookmarkClick(source: SourceInfo): void {
 
 function handleRefresh(): void {
   store.loadDashboardStats()
+}
+
+function handleViewContent(source: SourceInfo): void {
+  const url = router.resolve({ name: 'file-reader', params: { sourceId: source.id } }).href
+  window.open(url, '_blank')
+}
+
+function handleDownload(source: SourceInfo): void {
+  store.downloadFile(source.id)
+}
+
+function handleDelete(source: SourceInfo): void {
+  store.deleteFile(source.id, source.name)
 }
 
 onMounted(() => {

@@ -14,6 +14,9 @@ const GlobalSearchView = () => {
 const BookmarksView = () => {
   return import('@/views/BookmarksView.vue')
 }
+const FileReaderView = () => {
+  return import('@/views/FileReaderView.vue')
+}
 
 const router = createRouter({
   history: createWebHistory('/danilovl/log-viewer'),
@@ -42,6 +45,12 @@ const router = createRouter({
       path: '/logs/:sourceId',
       name: 'logs',
       component: LogsView,
+      props: true,
+    },
+    {
+      path: '/file-reader/:sourceId',
+      name: 'file-reader',
+      component: FileReaderView,
       props: true,
     },
     {

@@ -44,10 +44,16 @@ class LogFileReader
         try {
             $count = 0;
             $skipped = 0;
-            $lines = $sortDir === 'desc' ? $this->readLinesReversed($handle) : $this->readLinesForward($handle);
 
-            foreach ($lines as $line) {
-                if (!is_string($line) || $line === '') {
+            if ($sortDir === 'desc') {
+                $totalLines = $this->getCount($filePath, $parserType, host: $host);
+                $lines = $this->readLinesReversed($handle, $totalLines);
+            } else {
+                $lines = $this->readLinesForward($handle);
+            }
+
+            foreach ($lines as $lineNumber => $line) {
+                if ($line === '') {
                     continue;
                 }
                 if ($count >= $limit) {
@@ -59,6 +65,7 @@ class LogFileReader
                 }
 
                 $entry = $this->parser->parse($line, $filePath, $parserType);
+                $entry = $entry->withLineNumber($lineNumber);
 
                 if ($filters !== null && !$this->applyFilters($entry, $filters, $cursor, $sortDir, $searchRegexPattern)) {
                     continue;
@@ -445,22 +452,26 @@ class LogFileReader
 
     /**
      * @param resource $handle
+     * @return Generator<int, string>
      */
     private function readLinesForward($handle): Generator
     {
+        $lineNumber = 0;
         while (($line = fgets($handle)) !== false) {
-            yield mb_trim($line);
+            yield $lineNumber++ => mb_trim($line);
         }
     }
 
     /**
      * @param resource $handle
+     * @return Generator<int, string>
      */
-    private function readLinesReversed($handle): Generator
+    private function readLinesReversed($handle, int $totalLines): Generator
     {
         fseek($handle, 0, SEEK_END);
         $pos = ftell($handle);
         $leftover = '';
+        $lineNumber = $totalLines - 1;
 
         while ($pos > 0) {
             $readSize = min($pos, 65_536);
@@ -475,12 +486,12 @@ class LogFileReader
             $leftover = $lines[0];
 
             for ($i = $count - 1; $i >= 1; $i--) {
-                yield mb_trim($lines[$i]);
+                yield $lineNumber-- => mb_trim($lines[$i]);
             }
         }
 
         if ($leftover !== '') {
-            yield mb_trim($leftover);
+            yield $lineNumber-- => mb_trim($leftover);
         }
     }
 }

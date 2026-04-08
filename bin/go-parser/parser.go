@@ -41,6 +41,7 @@ type LogEntry struct {
 	File           string                 `json:"file"`
 	Context        map[string]interface{} `json:"context,omitempty"`
 	Time           time.Time              `json:"-"`
+	LineNumber     int                    `json:"lineNumber"`
 }
 
 func (e *LogEntry) Reset() {
@@ -54,6 +55,7 @@ func (e *LogEntry) Reset() {
 	e.File = ""
 	e.Context = nil
 	e.Time = time.Time{}
+	e.LineNumber = 0
 }
 
 func PutEntry(e *LogEntry) {

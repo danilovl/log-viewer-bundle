@@ -22,6 +22,7 @@ interface EffectiveSettingsOptions {
   refreshCountdown: Ref<number | null>
   dashboardRefreshCountdown: Ref<number | null>
   liveRefreshCountdown: Ref<number | null>
+  showReaderButton: Ref<boolean>
 }
 
 export function useLogEffectiveSettings(options: EffectiveSettingsOptions) {
@@ -95,6 +96,10 @@ export function useLogEffectiveSettings(options: EffectiveSettingsOptions) {
     return options.regexTemplates.value
   })
 
+  const showReaderButton = computed(() => {
+    return settingsStore.showReaderButton ?? options.showReaderButton.value
+  })
+
   return {
     aiButtonLevels,
     aiChats,
@@ -110,5 +115,6 @@ export function useLogEffectiveSettings(options: EffectiveSettingsOptions) {
     showLogRefreshCountdown,
     showDashboardRefreshCountdown,
     showLiveRefreshCountdown,
+    showReaderButton,
   }
 }

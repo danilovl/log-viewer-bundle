@@ -19,7 +19,10 @@ use Danilovl\LogViewerBundle\Tests\Mock\Parser\{
     CustomNoGoParser,
     CustomGoParser
 };
-use Danilovl\LogViewerBundle\Service\ConfigurationProvider;
+use Danilovl\LogViewerBundle\Service\{
+    ConfigurationProvider,
+    FileContentReader
+};
 use Symfony\Contracts\Cache\TagAwareCacheInterface;
 use PHPUnit\Framework\Attributes\{
     DataProvider,
@@ -42,6 +45,8 @@ final class LogViewerTest extends TestCase
 
     private TagAwareCacheInterface&MockObject $cache;
 
+    private FileContentReader&MockObject $fileContentReader;
+
     private CompositeLogParser&MockObject $compositeLogParser;
 
     protected function setUp(): void
@@ -52,12 +57,14 @@ final class LogViewerTest extends TestCase
         $this->phpReader = $this->createMock(LogFileReader::class);
         $this->sourceManager = $this->createMock(LogSourceManager::class);
         $this->cache = $this->createMock(TagAwareCacheInterface::class);
+        $this->fileContentReader = $this->createMock(FileContentReader::class);
         $this->compositeLogParser = $this->createMock(CompositeLogParser::class);
 
         $this->viewer = new LogViewer(
             configurationProvider: $configProvider,
             goClient: $this->goClient,
             phpReader: $this->phpReader,
+            fileContentReader: $this->fileContentReader,
             sourceManager: $this->sourceManager,
             cache: $this->cache,
             compositeLogParser: $this->compositeLogParser
@@ -133,6 +140,7 @@ final class LogViewerTest extends TestCase
             isDeletable: false,
             canDownload: false,
             isDownloadable: false,
+            isReadable: false,
             size: 1_024,
             modified: '2026-03-31T20:45:00+00:00'
         );
@@ -146,6 +154,63 @@ final class LogViewerTest extends TestCase
         $sources = $this->viewer->getSources();
 
         $this->assertSame($expectedSources, $sources);
+    }
+
+    public function testGetFileContentGo(): void
+    {
+        $this->setUseGo(true);
+        $filePath = '/path/to/log';
+        $parserType = 'monolog';
+        $page = 1;
+        $limit = 100;
+        $line = null;
+        $host = null;
+
+        $expectedData = [
+            'lines' => ['line1', 'line2'],
+            'page' => 1,
+            'limit' => 100,
+            'totalLines' => 2
+        ];
+
+        $this->goClient->expects($this->once())
+            ->method('getFileContent')
+            ->with($filePath, $page, $limit, $line, $host)
+            ->willReturn($expectedData);
+
+        $this->fileContentReader->expects($this->never())->method('readLines');
+
+        $data = $this->viewer->getFileContent($filePath, $parserType, $page, $limit, $line, $host);
+        $this->assertSame($expectedData, $data);
+    }
+
+    public function testGetFileContentPHP(): void
+    {
+        $this->setUseGo(false);
+        $filePath = '/path/to/log';
+        $parserType = 'monolog';
+        $page = 1;
+        $limit = 100;
+        $line = null;
+        $host = null;
+
+        $expectedLines = ['line1', 'line2'];
+        $this->fileContentReader->expects($this->once())
+            ->method('readLines')
+            ->with($filePath, $page, $limit, $line)
+            ->willReturn($expectedLines);
+
+        $this->fileContentReader->expects($this->once())
+            ->method('getTotalLines')
+            ->with($filePath)
+            ->willReturn(2);
+
+        $this->goClient->expects($this->never())->method('getFileContent');
+
+        $data = $this->viewer->getFileContent($filePath, $parserType, $page, $limit, $line, $host);
+
+        $this->assertSame($expectedLines, $data['lines']);
+        $this->assertSame(2, $data['totalLines']);
     }
 
     /**
@@ -249,6 +314,7 @@ final class LogViewerTest extends TestCase
             configurationProvider: $configProvider,
             goClient: $this->goClient,
             phpReader: $this->phpReader,
+            fileContentReader: $this->fileContentReader,
             sourceManager: $this->sourceManager,
             cache: $this->cache,
             compositeLogParser: $this->compositeLogParser
@@ -270,6 +336,7 @@ final class LogViewerTest extends TestCase
             configurationProvider: $configProvider,
             goClient: $this->goClient,
             phpReader: $this->phpReader,
+            fileContentReader: $this->fileContentReader,
             sourceManager: $this->sourceManager,
             cache: $this->cache,
             compositeLogParser: $this->compositeLogParser
@@ -408,6 +475,7 @@ final class LogViewerTest extends TestCase
             configurationProvider: $configProvider,
             goClient: $this->goClient,
             phpReader: $this->phpReader,
+            fileContentReader: $this->fileContentReader,
             sourceManager: $this->sourceManager,
             cache: $this->cache,
             compositeLogParser: $this->compositeLogParser

@@ -34,9 +34,20 @@
           </span>
         </button>
         <button
+          class="btn-icon btn-view"
+          :class="{ disabled: !store.source.isReadable }"
+          :title="store.source.isReadable ? t('viewContent') : t('noReadPermission')"
+          :disabled="!store.source.isReadable"
+          @click="handleViewContent"
+        >
+          <IconEye :width="16" :height="16" />
+        </button>
+        <button
           v-if="store.source.canDownload"
           class="btn-icon btn-download"
-          :title="t('download')"
+          :class="{ disabled: !store.source.isDownloadable }"
+          :title="store.source.isDownloadable ? t('download') : t('noDownloadPermission')"
+          :disabled="!store.source.isDownloadable"
           @click="store.downloadFile(store.source.id)"
         >
           <IconDownload :width="16" :height="16" />
@@ -44,7 +55,9 @@
         <button
           v-if="store.source.canDelete"
           class="btn-icon btn-delete"
-          :title="t('delete')"
+          :class="{ disabled: !store.source.isDeletable }"
+          :title="store.source.isDeletable ? t('delete') : t('noDeletePermission')"
+          :disabled="!store.source.isDeletable"
           @click="store.deleteFile(store.source.id, getFileName(store.source.path))"
         >
           <IconDelete :width="16" :height="16" />
@@ -94,18 +107,21 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { useLogStore } from '@/stores/useLogStore'
 import { useI18n } from '@/i18n/useI18n'
 import { useLogBookmarks } from '@/stores/log/useLogBookmarks'
 import { formatBytes, formatDateTime, getFileName } from '@/utils/format'
 import IconDownload from '@/components/icons/IconDownload.vue'
 import IconDelete from '@/components/icons/IconDelete.vue'
+import IconEye from '@/components/icons/IconEye.vue'
 import IconStar from '@/components/icons/IconStar.vue'
 import DotLoader from '@/components/UI/DotLoader.vue'
 
 const store = useLogStore()
 const { t } = useI18n()
 const { sourceBookmarksCount } = useLogBookmarks()
+const router = useRouter()
 
 const entriesCountFormatted = computed(() => {
   if (!store.entries.stats) {
@@ -126,4 +142,13 @@ const formattedModified = computed(() => {
 const formattedCalculated = computed(() => {
   return formatDateTime(store.entries.stats?.calculatedAt) || t('na')
 })
+
+function handleViewContent(): void {
+  const url = router.resolve({
+    name: 'file-reader',
+    params: { sourceId: store.source.id },
+    query: { line: 0 },
+  }).href
+  window.open(url, '_blank')
+}
 </script>

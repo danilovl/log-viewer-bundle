@@ -99,6 +99,7 @@ export const useLogStore = defineStore('log', () => {
       refreshCountdown: autoRefresh.refreshCountdown,
       dashboardRefreshCountdown: autoRefresh.dashboardRefreshCountdown,
       liveRefreshCountdown: autoRefresh.liveRefreshCountdown,
+      showReaderButton: logConfig.showReaderButton,
     }),
   )
 

@@ -4,7 +4,8 @@ namespace Danilovl\LogViewerBundle\Action\Api;
 
 use Danilovl\LogViewerBundle\DTO\{
     LogViewerQuery,
-    LogViewerFilters
+    LogViewerFilters,
+    LogEntry
 };
 use Danilovl\LogViewerBundle\Event\LogViewerEntriesEvent;
 use Danilovl\LogViewerBundle\Parser\Reader\LogViewer;
@@ -44,6 +45,7 @@ readonly class GetEntriesAction
                 'isDeletable' => $sourceInfo->isDeletable,
                 'canDownload' => $sourceInfo->canDownload,
                 'isDownloadable' => $sourceInfo->isDownloadable,
+                'isReadable' => $sourceInfo->isReadable,
             ]);
         }
 
@@ -67,6 +69,8 @@ readonly class GetEntriesAction
             offset: $query->offset,
             host: $sourceInfo->host
         );
+
+        $entries = array_map(static fn (LogEntry $entry): LogEntry => $entry->withSourceId($query->sourceId), $entries);
 
         $event = new LogViewerEntriesEvent($sourceInfo, $entries);
         $this->eventDispatcher->dispatch($event);
@@ -97,6 +101,7 @@ readonly class GetEntriesAction
             'isDeletable' => $sourceInfo->isDeletable,
             'canDownload' => $sourceInfo->canDownload,
             'isDownloadable' => $sourceInfo->isDownloadable,
+            'isReadable' => $sourceInfo->isReadable,
         ]);
     }
 }

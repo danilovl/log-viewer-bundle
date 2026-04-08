@@ -14,5 +14,6 @@ final readonly class SourceInfo
         public bool $isDeletable = false,
         public bool $canDownload = false,
         public bool $isDownloadable = false,
+        public bool $isReadable = false,
     ) {}
 }

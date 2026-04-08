@@ -10,6 +10,7 @@ export interface TreeFile {
   isDeletable: boolean
   canDownload: boolean
   isDownloadable: boolean
+  isReadable: boolean
   size: number
 }
 
@@ -35,6 +36,7 @@ export interface LogEntry {
   sourceId?: string
   sql?: string
   context?: Record<string, unknown>
+  lineNumber?: number
 }
 
 export interface AiChat {
@@ -61,6 +63,7 @@ export interface SourceInfo {
   isDeletable: boolean
   canDownload: boolean
   isDownloadable: boolean
+  isReadable: boolean
   calculatedAt?: string
 }
 

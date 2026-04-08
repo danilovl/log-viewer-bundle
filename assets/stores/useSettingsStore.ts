@@ -19,6 +19,7 @@ export const useSettingsStore = defineStore('settings', () => {
   const logPageLimit = ref<number | null>(null)
 
   const aiButtonLevels = ref<string[] | null>(null)
+  const showReaderButton = ref<boolean | null>(null)
 
   const storageKey = 'danilovl.log_viewer.settings'
 
@@ -42,6 +43,7 @@ export const useSettingsStore = defineStore('settings', () => {
       logPageLimit.value = parsed.logPageLimit ?? null
 
       aiButtonLevels.value = parsed.aiButtonLevels ?? null
+      showReaderButton.value = parsed.showReaderButton ?? null
     } catch (e) {
       console.error('Failed  to  parse  settings  from  localStorage', e)
     }
@@ -62,6 +64,7 @@ export const useSettingsStore = defineStore('settings', () => {
       logPageStatisticEnabled,
       logPageLimit,
       aiButtonLevels,
+      showReaderButton,
     ],
     () => {
       if (dashboardPageAutoRefreshInterval.value !== null && dashboardPageAutoRefreshInterval.value <= 0) {
@@ -96,6 +99,7 @@ export const useSettingsStore = defineStore('settings', () => {
           logPageStatisticEnabled: logPageStatisticEnabled.value,
           logPageLimit: logPageLimit.value,
           aiButtonLevels: aiButtonLevels.value,
+          showReaderButton: showReaderButton.value,
         }),
       )
 
@@ -118,6 +122,7 @@ export const useSettingsStore = defineStore('settings', () => {
     logPageStatisticEnabled.value = null
     logPageLimit.value = null
     aiButtonLevels.value = null
+    showReaderButton.value = null
   }
 
   return {
@@ -134,6 +139,7 @@ export const useSettingsStore = defineStore('settings', () => {
     logPageStatisticEnabled,
     logPageLimit,
     aiButtonLevels,
+    showReaderButton,
     resetSettings,
   }
 })

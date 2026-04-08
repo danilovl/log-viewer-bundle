@@ -13,4 +13,9 @@ final class FileActionHelper
     {
         return $allowDownload && is_file($path) && is_readable($path);
     }
+
+    public static function canRead(string $path): bool
+    {
+        return is_file($path) && is_readable($path);
+    }
 }

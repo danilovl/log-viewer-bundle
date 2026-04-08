@@ -91,6 +91,8 @@ export async function fetchLogStats(
   canDelete: boolean
   isDeletable: boolean
   canDownload: boolean
+  isDownloadable: boolean
+  isReadable: boolean
   duration: number
 }> {
   const startTime = performance.now()
@@ -129,6 +131,8 @@ export async function fetchLogStats(
     canDelete: response.data.canDelete,
     isDeletable: response.data.isDeletable,
     canDownload: response.data.canDownload,
+    isDownloadable: response.data.isDownloadable,
+    isReadable: response.data.isReadable,
     duration,
   }
 }
@@ -154,6 +158,8 @@ export async function fetchLogEntries(
   canDelete: boolean
   isDeletable: boolean
   canDownload: boolean
+  isDownloadable: boolean
+  isReadable: boolean
   duration: number
 }> {
   const startTime = performance.now()
@@ -198,6 +204,8 @@ export async function fetchLogEntries(
     canDelete: response.data.canDelete,
     isDeletable: response.data.isDeletable,
     canDownload: response.data.canDownload,
+    isDownloadable: response.data.isDownloadable,
+    isReadable: response.data.isReadable,
     duration,
   }
 }
@@ -287,6 +295,31 @@ export async function downloadLogFile(sourceId: string): Promise<Blob> {
   })
 
   return response.data
+}
+
+export async function fetchFileContent(
+  sourceId: string,
+  page: number,
+  limit: number,
+  line?: number,
+): Promise<{
+  lines: string[]
+  page: number
+  limit: number
+  totalLines: number
+}> {
+  const params: Record<string, any> = { sourceId, page, limit }
+  if (line !== undefined) {
+    params.line = line
+  }
+
+  const response = await axios.get(`${apiPrefix}/file-content`, { params })
+  const data = response.data
+
+  return {
+    ...data,
+    lines: data.lines || [],
+  }
 }
 
 export async function fetchGlobalSearch(

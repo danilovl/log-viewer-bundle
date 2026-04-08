@@ -36,12 +36,17 @@
             }}</span>
           </div>
           <div
-            v-if="file.canDelete || file.canDownload"
-            :class="['tree-file-settings', { active: store.activeFileDropdownId === file.id }]"
+            class="tree-file-settings"
+            :class="{ active: store.activeFileDropdownId === file.id }"
             @click.stop="toggleDropdown(file.id, $event)"
           >
             <IconSettings class-name="settings-icon" :width="14" :height="14" />
             <div :class="['settings-dropdown', { show: store.activeFileDropdownId === file.id }]" :title="''">
+              <span :title="file.isReadable ? t('viewContent') : t('noReadPermission')">
+                <button class="view-action" :disabled="!file.isReadable" @click.stop="handleViewContent(file)">
+                  <IconEye :width="14" :height="14" />
+                </button>
+              </span>
               <span v-if="file.canDownload" :title="file.isDownloadable ? t('download') : t('noDownloadPermission')">
                 <button class="download-action" :disabled="!file.isDownloadable" @click.stop="handleDownload(file)">
                   <IconDownload :width="14" :height="14" />
@@ -74,6 +79,7 @@ import IconFile from '@/components/icons/IconFile.vue'
 import IconSettings from '@/components/icons/IconSettings.vue'
 import IconDelete from '@/components/icons/IconDelete.vue'
 import IconDownload from '@/components/icons/IconDownload.vue'
+import IconEye from '@/components/icons/IconEye.vue'
 
 const props = defineProps<{
   node: TreeFolder
@@ -141,5 +147,15 @@ function handleDelete(file: TreeFile): void {
 function handleDownload(file: TreeFile): void {
   store.activeFileDropdownId = null
   store.downloadFile(file.id)
+}
+
+function handleViewContent(file: TreeFile): void {
+  store.activeFileDropdownId = null
+  const url = router.resolve({
+    name: 'file-reader',
+    params: { sourceId: file.id },
+    query: { line: 0 },
+  }).href
+  window.open(url, '_blank')
 }
 </script>

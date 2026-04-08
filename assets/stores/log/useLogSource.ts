@@ -12,6 +12,9 @@ export function useLogSource() {
     canDelete: false,
     isDeletable: false,
     canDownload: false,
+    isDownloadable: false,
+    canRead: false,
+    isReadable: false,
     parserType: '',
     size: 0,
   })

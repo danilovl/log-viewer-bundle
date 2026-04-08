@@ -44,33 +44,35 @@ func main() {
 
 	var parser LogParser
 
-	if *parserName != "" {
-		factory, ok := parserRegistry[*parserName]
-		if !ok {
-			fmt.Fprintf(os.Stderr, "Unknown parser: %s. Available: monolog, nginx_access, nginx_error, apache_access, syslog, auth, kern, php_fpm, php_error, supervisord, mysql, json\n", *parserName)
-			os.Exit(1)
-		}
-		parser = factory()
-	} else if *pattern != "" {
-		pStr := *pattern
-		if len(pStr) > 2 {
-			first := pStr[0]
-			last := pStr[len(pStr)-1]
-			if first == last && (first == '~' || first == '/' || first == '#') {
-				pStr = pStr[1 : len(pStr)-1]
+	if *mode != "file_content" {
+		if *parserName != "" {
+			factory, ok := parserRegistry[*parserName]
+			if !ok {
+				fmt.Fprintf(os.Stderr, "Unknown parser: %s. Available: monolog, nginx_access, nginx_error, apache_access, syslog, auth, kern, php_fpm, php_error, supervisord, mysql, json\n", *parserName)
+				os.Exit(1)
 			}
-		}
-		re, err := regexp.Compile(pStr)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Invalid pattern: %v\n", err)
-			os.Exit(1)
-		}
-		parser = NewUniversalParser(re)
-	} else {
-		parser = autoDetectParser(*filePath)
-		if parser == nil {
-			fmt.Fprintf(os.Stderr, "Could not auto-detect log format. Use --parser or --pattern.\n")
-			os.Exit(1)
+			parser = factory()
+		} else if *pattern != "" {
+			pStr := *pattern
+			if len(pStr) > 2 {
+				first := pStr[0]
+				last := pStr[len(pStr)-1]
+				if first == last && (first == '~' || first == '/' || first == '#') {
+					pStr = pStr[1 : len(pStr)-1]
+				}
+			}
+			re, err := regexp.Compile(pStr)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Invalid pattern: %v\n", err)
+				os.Exit(1)
+			}
+			parser = NewUniversalParser(re)
+		} else {
+			parser = autoDetectParser(*filePath)
+			if parser == nil {
+				fmt.Fprintf(os.Stderr, "Could not auto-detect log format. Use --parser or --pattern.\n")
+				os.Exit(1)
+			}
 		}
 	}
 
@@ -91,6 +93,8 @@ func main() {
 		runStatsFilter(cfg, parser, *level, *levels, *channel, *search, *searchRegex, *searchCaseSensitive, *dateFrom, *dateTo)
 	case "count":
 		runCount(cfg, parser, *level, *levels, *channel, *search, *searchRegex, *searchCaseSensitive, *dateFrom, *dateTo)
+	case "file_content":
+		runFileContent(cfg, *limit, *offset)
 	default:
 		runLogs(cfg, parser, *limit, *offset, *cursor, *level, *levels, *channel, *search, *searchRegex, *searchCaseSensitive, *dateFrom, *dateTo, *sort)
 	}

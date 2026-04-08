@@ -194,6 +194,67 @@ readonly class GoLogClient
         return (int) $total;
     }
 
+    /**
+     * @return array{lines: list<string>, page: int, limit: int, totalLines: int}
+     */
+    public function getFileContent(
+        string $filePath,
+        int $page = 1,
+        int $limit = 100,
+        ?int $line = null,
+        ?string $hostName = null
+    ): array {
+        if ($hostName === null && (!is_file($filePath) || filesize($filePath) === 0)) {
+            return [
+                'lines' => [],
+                'page' => $page,
+                'limit' => $limit,
+                'totalLines' => 0
+            ];
+        }
+
+        $offset = ($page - 1) * $limit;
+        if ($line !== null) {
+            $offset = $line;
+        }
+
+        $binaryPath = $this->getBinaryPath();
+        $arguments = new GoLogArguments(
+            binaryPath: $binaryPath,
+            filePath: $filePath,
+            configurationProvider: $this->configurationProvider,
+            compositeLogParser: $this->compositeLogParser
+        );
+
+        $arguments
+            ->addMode('file_content')
+            ->addHost($hostName)
+            ->addPagination(
+                limit: $limit,
+                offset: $offset,
+                cursor: null,
+                sortDir: 'asc'
+            );
+
+        $process = new Process($arguments->toArray());
+        $process->setTimeout(30);
+        $process->run();
+
+        if (!$process->isSuccessful()) {
+            $errorOutput = $process->getErrorOutput();
+
+            throw new RuntimeException('Go parser file_content error: ' . $errorOutput);
+        }
+
+        $output = $process->getOutput();
+        $decoded = json_decode($output, true);
+
+        /** @var array{lines: list<string>, page: int, limit: int, totalLines: int} $data */
+        $data = is_array($decoded) ? $decoded : [];
+
+        return $data;
+    }
+
     public function identify(string $filePath, ?string $hostName = null): ?string
     {
         if ($hostName === null && (!is_file($filePath) || filesize($filePath) === 0)) {
@@ -256,6 +317,8 @@ readonly class GoLogClient
         $sqlString = is_scalar($sql) ? (string) $sql : null;
         $parametersArray = is_array($parameters) ? $parameters : null;
         $contextArray = is_array($context) ? $context : null;
+        $lineNumber = $data['lineNumber'] ?? null;
+        $lineNumberInt = is_numeric($lineNumber) ? (int) $lineNumber : null;
 
         return new LogEntry(
             timestamp: $timestampString,
@@ -267,6 +330,7 @@ readonly class GoLogClient
             sql: $sqlString,
             parameters: $parametersArray,
             context: $contextArray,
+            lineNumber: $lineNumberInt
         );
     }
 

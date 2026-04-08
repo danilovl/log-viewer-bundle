@@ -11,6 +11,9 @@ It supports log reading through standard PHP methods as well as a high-performan
 ## Features
 
 - **Advanced Search**: Support for regular expressions (Regex), case-sensitivity toggles, and search term highlighting in the search bar.
+- **File Reader**: "Nano-like" log file viewer that loads content incrementally as you scroll, allowing you to read files of any size without browser performance issues.
+- **Jump to Line**: Quickly navigate to any specific line in the log file within the File Reader.
+- **Line Numbers**: Each log entry is now associated with its exact line number in the source file, making it easy to reference and find in the original log.
 - **Global Search**: Search across multiple log files at once from a dedicated page with combined and time-sorted results.
 - **Regex Templates**: Predefined collection of popular regular expressions for common log patterns, with specific implementations for PHP/Symfony and Go.
 - **Live Multi-source View**: Select multiple log files in the Live Log view via a modal to monitor them simultaneously in a single real-time stream.
@@ -22,7 +25,9 @@ It supports log reading through standard PHP methods as well as a high-performan
 - **Multiple Parsers**: Support for Monolog, Nginx, Apache, PHP, Syslog, and more.
 - **High Performance**: Optional Go-based parser for extremely fast processing of large log files.
 - **Log Statistics**: Detailed charts and metrics (by level, channel, timeline) with interactive range selection powered by Google Charts.
+- **View in Reader**: Open any log entry directly in the File Reader from the Dashboard, Logs, Live, or Global Search views to see its surrounding context.
 - **Auto-Refresh**: Configurable real-time updates for dashboard and individual log views.
+- **Font Size Control**: Adjust the font size in the File Reader dynamically for better readability.
 - **AI-Powered Analysis**: Quick "Ask AI" button for error logs, supporting ChatGPT, Perplexity, Gemini, Claude, and more.
 - **Dark & Light Modes**: Full support for dark and light themes, respecting system preferences or manual toggle.
 - **Multilingual**: Supports 10+ languages (English, Russian, Chinese, Hindi, Spanish, French, Arabic, Portuguese, Japanese, German).
@@ -390,6 +395,7 @@ After installation and route configuration, the dashboard will be available at: 
 - **Localization**: Supported languages include English, Russian, Chinese, Hindi, Spanish, French, Arabic, Portuguese, Japanese, and German. You can switch the language directly in the UI.
 - **Interactive Statistics**: Real-time charts for log level distribution, channels, and error trends over time. Includes an interactive timeline selector (zoom) to focus on specific periods.
 - **Live View**: Dedicated page for watching incoming logs in real-time, perfect for debugging active issues. Features color-coded status for new entries and level filtering.
+- **File Reader (Nano-like)**: An advanced viewer for reading raw log files line-by-line with infinite scrolling. Supports jumping to specific lines and adjustable font sizes. Perfect for examining the full context of an error.
 - **Ask AI**: When viewing error logs, use the "Ask AI" button to quickly analyze the error with your favorite AI chat. You can review and edit the prompt before sending it to ensure no sensitive data is shared. The list of AI chats and their query patterns is fully configurable.
 - **Auto-Refresh**: Stay up to date with incoming logs and dashboard statistics using the built-in auto-refresh feature with countdown indicators.
 
@@ -447,6 +453,14 @@ Query parameters:
 - `searchCaseSensitive` (bool): Enable case-sensitive search.
 - `dateFrom` (string): Filter by start date.
 - `dateTo` (string): Filter by end date.
+
+`GET /file-content`
+Returns raw file content with pagination and line jumping.
+Query parameters:
+- `sourceId` (string, required): The Source ID.
+- `limit` (int): Number of lines (default: 100).
+- `offset` (int): Numeric offset (starting line).
+- `line` (int): Jump to a specific line number.
 
 `GET /entries/new`
 Returns only new log entries across specified sources (used for real-time updates).

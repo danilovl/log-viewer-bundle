@@ -62,6 +62,7 @@ readonly class GetStatsAction
             'isDeletable' => $sourceInfo->isDeletable,
             'canDownload' => $sourceInfo->canDownload,
             'isDownloadable' => $sourceInfo->isDownloadable,
+            'isReadable' => $sourceInfo->isReadable,
         ]);
     }
 }

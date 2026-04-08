@@ -2,7 +2,10 @@
 
 namespace Danilovl\LogViewerBundle\Parser\Reader;
 
-use Danilovl\LogViewerBundle\Service\ConfigurationProvider;
+use Danilovl\LogViewerBundle\Service\{
+    ConfigurationProvider,
+    FileContentReader
+};
 use Danilovl\LogViewerBundle\Parser\{
     CompositeLogParser
 };
@@ -29,6 +32,7 @@ class LogViewer
         private readonly ConfigurationProvider $configurationProvider,
         private readonly GoLogClient $goClient,
         private readonly LogFileReader $phpReader,
+        private readonly FileContentReader $fileContentReader,
         private readonly LogSourceManager $sourceManager,
         private readonly TagAwareCacheInterface $cache,
         private readonly CompositeLogParser $compositeLogParser,
@@ -260,6 +264,53 @@ class LogViewer
         }
 
         return $key;
+    }
+
+    /**
+     * @return array{lines: list<string>, page: int, limit: int, totalLines: int}
+     */
+    public function getFileContent(
+        string $filePath,
+        ?string $parserType,
+        int $page = 1,
+        int $limit = 100,
+        ?int $line = null,
+        ?string $host = null
+    ): array {
+        if ($this->isGoParserEnabled($parserType)) {
+            try {
+                return $this->goClient->getFileContent($filePath, $page, $limit, $line, $host);
+            } catch (RuntimeException $e) {
+                $message = sprintf('LogViewerBundle: Go parser error (file_content), fallback to PHP: %s', $e->getMessage());
+
+                $this->logger?->error($message, [
+                    'file' => $filePath,
+                    'parser' => $parserType,
+                    'host' => $host
+                ]);
+            }
+        }
+
+        if ($host !== null) {
+            return [
+                'lines' => [],
+                'page' => $page,
+                'limit' => $limit,
+                'totalLines' => 0
+            ];
+        }
+
+        $lines = array_values($this->fileContentReader->readLines($filePath, $page, $limit, $line));
+        if ($line !== null) {
+            $page = (int) floor($line / $limit) + 1;
+        }
+
+        return [
+            'lines' => $lines,
+            'page' => $page,
+            'limit' => $limit,
+            'totalLines' => $this->fileContentReader->getTotalLines($filePath)
+        ];
     }
 
     public function isGoParserEnabled(?string $parserType): bool

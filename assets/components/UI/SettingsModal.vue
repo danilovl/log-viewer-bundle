@@ -93,6 +93,12 @@
               :placeholder="t('default')"
             />
           </div>
+          <div class="settings-group">
+            <label class="checkbox-label">
+              <input v-model="showReaderButtonLocal" type="checkbox" />
+              {{ t('showReaderButton') }}
+            </label>
+          </div>
         </div>
 
         <div class="settings-section">
@@ -276,6 +282,15 @@ const menuShowFileSizeLocal = computed({
   },
   set: (val) => {
     settingsStore.menuShowFileSize = val
+  },
+})
+
+const showReaderButtonLocal = computed({
+  get: () => {
+    return settingsStore.showReaderButton ?? true
+  },
+  set: (val) => {
+    settingsStore.showReaderButton = val
   },
 })
 </script>

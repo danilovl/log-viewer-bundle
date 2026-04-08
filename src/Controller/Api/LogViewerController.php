@@ -10,6 +10,7 @@ use Danilovl\LogViewerBundle\Action\Api\{
     GetEntriesAction,
     GetEntriesCountAction,
     GetEntriesNewAction,
+    GetFileContentAction,
     GetFoldersAction,
     GetStatsAction,
     GetStructureAction,
@@ -40,6 +41,7 @@ readonly class LogViewerController
         private GetDashboardStatsAction $getDashboardStatsAction,
         private DeleteLogAction $deleteLogAction,
         private DownloadLogAction $downloadLogAction,
+        private GetFileContentAction $getFileContentAction,
         private GlobalSearchAction $globalSearchAction
     ) {}
 
@@ -169,5 +171,23 @@ readonly class LogViewerController
         string $sourceId
     ): Response {
         return $this->downloadLogAction->__invoke($sourceId);
+    }
+
+    #[Route(
+        path: '/file-content',
+        name: 'danilovl_log_viewer_api_file_content',
+        methods: [Request::METHOD_GET]
+    )]
+    public function fileContent(
+        #[MapQueryParameter]
+        string $sourceId,
+        #[MapQueryParameter]
+        int $page = 1,
+        #[MapQueryParameter]
+        int $limit = 100,
+        #[MapQueryParameter]
+        ?int $line = null
+    ): JsonResponse {
+        return $this->getFileContentAction->__invoke($sourceId, $page, $limit, $line);
     }
 }

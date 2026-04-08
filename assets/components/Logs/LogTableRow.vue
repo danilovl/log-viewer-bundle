@@ -66,6 +66,7 @@ import LogContext from '@/components/Logs/LogContext.vue'
 import AskAi from '@/components/Logs/AskAi.vue'
 import IconStar from '@/components/icons/IconStar.vue'
 import IconFile from '@/components/icons/IconFile.vue'
+import IconEye from '@/components/icons/IconEye.vue'
 
 defineProps<{
   entry: LogEntry
