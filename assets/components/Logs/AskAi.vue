@@ -1,17 +1,8 @@
 <template>
-  <div v-if="isErrorLevel(entry.level)" class="log-actions">
-    <router-link
-      v-if="showReaderButton"
-      :to="{ name: 'file-reader', params: { sourceId: entry.sourceId }, query: { line: entry.lineNumber } }"
-      target="_blank"
-      class="view-reader-btn"
-      :title="t('viewInReader')"
-    >
-      <IconEye :width="14" :height="14" />
-      <span>{{ t('viewInReader') }}</span>
-    </router-link>
+  <div v-if="showActions" class="log-actions">
+    <ViewInReader :entry="entry" />
 
-    <div ref="containerRef" class="ask-ai-container" :class="{ 'is-open': isOpen }">
+    <div v-if="isErrorLevel(entry.level)" ref="containerRef" class="ask-ai-container" :class="{ 'is-open': isOpen }">
       <button class="ask-ai-btn" :title="t('askAI')" :class="{ 'is-active': isOpen }" @click.stop="toggleMenu">
         <IconRobot :width="14" :height="14" />
         <span>{{ t('askAI') }}</span>
@@ -52,7 +43,7 @@ import { useLogStore } from '@/stores/useLogStore'
 import { useI18n } from '@/i18n/useI18n'
 import type { LogEntry, AiChat } from '@/types'
 import IconRobot from '@/components/icons/IconRobot.vue'
-import IconEye from '@/components/icons/IconEye.vue'
+import ViewInReader from '@/components/Logs/ViewInReader.vue'
 
 const props = defineProps<{
   entry: LogEntry
@@ -79,6 +70,10 @@ const aiChatsWithoutPrompt = computed(() => {
   return aiChats.value.filter((c: AiChat) => {
     return !c.hasPrompt
   })
+})
+
+const showActions = computed(() => {
+  return showReaderButton.value || isErrorLevel(props.entry.level)
 })
 
 const showReaderButton = computed(() => {
