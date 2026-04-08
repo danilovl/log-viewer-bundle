@@ -10,27 +10,40 @@ import (
 )
 
 func runFileContent(cfg RemoteConfig, limit, offset int) {
-	f, _, err := OpenLogFile(cfg)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error opening file: %v\n", err)
-		os.Exit(1)
-	}
-	defer f.Close()
+	var f io.ReadCloser
+	var err error
+	var totalLines int
 
-	totalLines := 0
-	lines := []string{}
-
-	if cfg.Host == "" {
-		if osF, ok := f.(*os.File); ok {
-			if data, mErr := Mmap(osF); mErr == nil && len(data) > 0 {
-				totalLines = bytes.Count(data, []byte("\n"))
-				if len(data) > 0 && data[len(data)-1] != '\n' {
-					totalLines++
+	if cfg.Host == "" && isGzipFile(cfg.FilePath) {
+		data, gErr := readGzipFull(cfg.FilePath)
+		if gErr != nil {
+			fmt.Fprintf(os.Stderr, "Error reading gzip file: %v\n", gErr)
+			os.Exit(1)
+		}
+		totalLines = bytes.Count(data, []byte("\n"))
+		if len(data) > 0 && data[len(data)-1] != '\n' {
+			totalLines++
+		}
+		f = io.NopCloser(bytes.NewReader(data))
+	} else {
+		f, _, err = OpenLogFile(cfg)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error opening file: %v\n", err)
+			os.Exit(1)
+		}
+		if cfg.Host == "" {
+			if osF, ok := f.(*os.File); ok {
+				if data, mErr := Mmap(osF); mErr == nil && len(data) > 0 {
+					totalLines = bytes.Count(data, []byte("\n"))
+					if len(data) > 0 && data[len(data)-1] != '\n' {
+						totalLines++
+					}
+					Munmap(data)
 				}
-				Munmap(data)
 			}
 		}
 	}
+	defer f.Close()
 
 	if rs, ok := f.(io.ReadSeeker); ok {
 		if _, err := rs.Seek(0, io.SeekStart); err != nil {
@@ -40,8 +53,9 @@ func runFileContent(cfg RemoteConfig, limit, offset int) {
 
 	scanner := bufio.NewScanner(f)
 	buf := make([]byte, 64*1024)
-	scanner.Buffer(buf, 1*1024*1024)
+	scanner.Buffer(buf, 10*1024*1024)
 
+	lines := []string{}
 	currentLine := 0
 	count := 0
 
@@ -51,6 +65,10 @@ func runFileContent(cfg RemoteConfig, limit, offset int) {
 			count++
 		}
 		currentLine++
+	}
+
+	if err := scanner.Err(); err != nil {
+		fmt.Fprintf(os.Stderr, "Scanner error: %v\n", err)
 	}
 
 	if totalLines == 0 {
