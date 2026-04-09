@@ -42,10 +42,8 @@ readonly class FileContentReader
         $file->seek(PHP_INT_MAX);
         $totalLines = $file->key();
 
-        $handle = fopen($filePath, 'r');
-        fseek($handle, -1, SEEK_END);
-        $lastChar = fread($handle, 1);
-        fclose($handle);
+        $file->fseek(-1, SEEK_END);
+        $lastChar = $file->fread(1);
 
         if ($lastChar === "\n") {
             return $totalLines;
