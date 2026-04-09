@@ -53,7 +53,7 @@ class RegexTemplateProviderTest extends TestCase
         yield ['symfony_deprecation_php', self::getSpecificRegex('symfony_deprecation', 'php'), 'User Deprecated: Some feature is deprecated', true];
         yield ['symfony_security_php', self::getSpecificRegex('symfony_security', 'php'), 'Authentication request failed: Bad credentials', true];
         yield ['symfony_messenger_php', self::getSpecificRegex('symfony_messenger', 'php'), 'Error thrown while handling message App\Message\MyMessage. Sending for retry', true];
-        yield ['doctrine_query_time_php', self::getSpecificRegex('doctrine_query_time', 'php'), 'total time: 25.5 ms', true];
+        yield ['sql_query_time_php', self::getSpecificRegex('sql_query_time', 'php'), 'total time: 25.5 ms', true];
         yield ['php_syntax_error_php', self::getSpecificRegex('php_syntax_error', 'php'), 'PHP Parse error: syntax error, unexpected token ";"', true];
         yield ['php_warning_php', self::getSpecificRegex('php_warning', 'php'), 'PHP Warning: Division by zero in file.php:10', true];
         yield ['php_notice_php', self::getSpecificRegex('php_notice', 'php'), 'PHP Notice: Undefined variable $x in file.php:5', true];
@@ -64,10 +64,11 @@ class RegexTemplateProviderTest extends TestCase
         yield ['memory_limit_php', self::getSpecificRegex('memory_limit', 'php'), 'Allowed memory size of 123456 bytes exhausted', true];
         yield ['fatal_error_php', self::getSpecificRegex('fatal_error', 'php'), 'Fatal error: Uncaught Error in /path/to/file.php on line 45', true];
         yield ['framework_route_php', self::getSpecificRegex('framework_route', 'php'), 'Matched route "app_homepage"', true];
-        yield ['database_query_php', self::getSpecificRegex('database_query', 'php'), 'SELECT * FROM users WHERE id = 1', true];
+        yield ['sql_select_php', self::getSpecificRegex('sql_select', 'php'), 'SELECT * FROM users WHERE id = 1', true];
         yield ['sensitive_data_cc_php', self::getSpecificRegex('sensitive_data_cc', 'php'), '4111111111111111', true];
         yield ['http_status_error_php', self::getSpecificRegex('http_status_error', 'php'), '404', true];
-        yield ['db_connection_error_php', self::getSpecificRegex('db_connection_error', 'php'), 'SQLSTATE[HY000] [2002] Connection refused', true];
+        yield ['grpc_error_php', self::getSpecificRegex('grpc_error', 'php'), 'rpc error: code = NotFound desc = user not found', true];
+        yield ['sql_connection_error_php', self::getSpecificRegex('sql_connection_error', 'php'), 'SQLSTATE[HY000] [2002] Connection refused', true];
 
         // Go matches
         yield ['exception_go', self::getSpecificRegex('exception', 'go'), 'panic: something went wrong', true];
@@ -76,10 +77,11 @@ class RegexTemplateProviderTest extends TestCase
         yield ['memory_limit_go', self::getSpecificRegex('memory_limit', 'go'), 'runtime: out of memory', true];
         yield ['fatal_error_go', self::getSpecificRegex('fatal_error', 'go'), 'fatal error: concurrent map writes', true];
         yield ['framework_route_go', self::getSpecificRegex('framework_route', 'go'), 'http: panic serving 127.0.0.1:1234: some error', true];
-        yield ['database_query_go', self::getSpecificRegex('database_query', 'go'), 'sql: SELECT * FROM users', true];
+        yield ['sql_select_go', self::getSpecificRegex('sql_select', 'go'), 'sql: SELECT * FROM users', true];
         yield ['sensitive_data_cc_go', self::getSpecificRegex('sensitive_data_cc', 'go'), '4111111111111111', true];
-        yield ['http_status_error_go', self::getSpecificRegex('http_status_error', 'go'), 'rpc error: code = Unimplemented desc = unknown service', true];
-        yield ['db_connection_error_go', self::getSpecificRegex('db_connection_error', 'go'), 'connection refused', true];
+        yield ['http_status_error_go', self::getSpecificRegex('http_status_error', 'go'), '500 Internal Server Error', true];
+        yield ['grpc_error_go', self::getSpecificRegex('grpc_error', 'go'), 'rpc error: code = Unimplemented desc = unknown service', true];
+        yield ['sql_connection_error_go', self::getSpecificRegex('sql_connection_error', 'go'), 'connection refused', true];
 
         // Universal matches (using PHP side for extraction)
         yield ['ipv4_address', self::getSpecificRegex('ipv4_address', 'php'), '127.0.0.1', true];
@@ -187,7 +189,7 @@ class RegexTemplateProviderTest extends TestCase
         yield ['kernel_message_php', self::getSpecificRegex('kernel_message', 'php'), 'kernel: vethaecd40d: renamed from eth0', true];
         yield ['log_channel_php', self::getSpecificRegex('log_channel', 'php'), 'app.ERROR: error message', true];
         yield ['http_version_php', self::getSpecificRegex('http_version', 'php'), 'GET / HTTP/1.1', true];
-        yield ['db_transaction_php', self::getSpecificRegex('db_transaction', 'php'), 'START TRANSACTION', true];
+        yield ['sql_transaction_php', self::getSpecificRegex('sql_transaction', 'php'), 'START TRANSACTION', true];
     }
 
     private static function getSpecificRegex(string $key, string $type): string

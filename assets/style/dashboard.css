@@ -49,43 +49,43 @@
 .dark {
   --primary: #818cf8;
   --primary-hover: #6366f1;
-  --bg-main: #0f172a;
-  --sidebar-bg: #1e293b;
+  --bg-main: #020617;
+  --sidebar-bg: #0f172a;
   --sidebar-text: #e2e8f0;
-  --sidebar-active: #334155;
-  --card-bg: #1e293b;
-  --text-main: #f1f5f9;
+  --sidebar-active: #1e293b;
+  --card-bg: #0f172a;
+  --text-main: #f8fafc;
   --text-muted: #94a3b8;
-  --border: #334155;
-  --terminal-bg: #020617;
+  --border: #1e293b;
+  --terminal-bg: #000000;
   --terminal-text: #e2e8f0;
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
-  --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.3);
-  --shadow-md: 0 20px 25px -5px rgb(0 0 0 / 0.4), 0 8px 10px -6px rgb(0 0 0 / 0.3);
-  --hover-bg: #334155;
-  --skeleton-base: #334155;
-  --skeleton-shine: #475569;
-  --skeleton-header: #475569;
-  --json-bg: #0f172a;
-  --json-header-bg: #1e293b;
-  --level-error-bg: rgba(239, 68, 68, 0.2);
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.5);
+  --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.6), 0 2px 4px -2px rgb(0 0 0 / 0.5);
+  --shadow-md: 0 20px 25px -5px rgb(0 0 0 / 0.6), 0 8px 10px -6px rgb(0 0 0 / 0.5);
+  --hover-bg: #1e293b;
+  --skeleton-base: #1e293b;
+  --skeleton-shine: #334155;
+  --skeleton-header: #334155;
+  --json-bg: #020617;
+  --json-header-bg: #0f172a;
+  --level-error-bg: rgba(220, 38, 38, 0.2);
   --level-error-text: #fca5a5;
-  --level-critical-bg: rgba(239, 68, 68, 0.3);
+  --level-critical-bg: rgba(220, 38, 38, 0.25);
   --level-critical-text: #fca5a5;
-  --level-alert-bg: rgba(239, 68, 68, 0.4);
+  --level-alert-bg: rgba(220, 38, 38, 0.3);
   --level-alert-text: #fecaca;
   --level-emergency-bg: #ef4444;
   --level-emergency-text: #ffffff;
-  --level-warning-bg: rgba(245, 158, 11, 0.2);
+  --level-warning-bg: rgba(217, 119, 6, 0.2);
   --level-warning-text: #fcd34d;
-  --level-info-bg: rgba(59, 130, 246, 0.2);
+  --level-info-bg: rgba(37, 99, 235, 0.2);
   --level-info-text: #93c5fd;
-  --level-debug-bg: rgba(100, 116, 139, 0.2);
-  --level-debug-text: #94a3b8;
-  --ts-date-color: #cbd5e1;
-  --tooltip-bg: #020617;
-  --tooltip-text: #f1f5f9;
-  --tooltip-border: #334155;
+  --level-debug-bg: rgba(71, 85, 105, 0.25);
+  --level-debug-text: #cbd5e1;
+  --ts-date-color: #94a3b8;
+  --tooltip-bg: #000000;
+  --tooltip-text: #f8fafc;
+  --tooltip-border: #1e293b;
 }
 
 * {
@@ -2187,7 +2187,8 @@ body {
   color: var(--text-muted);
 }
 
-.download-action:hover {
+.download-action:hover,
+.view-action:hover {
   background: var(--bg-main);
   color: var(--text-main);
 }
@@ -3957,8 +3958,8 @@ mark {
 }
 
 .dark mark {
-  background-color: rgba(255, 235, 59, 0.25);
-  color: #fff;
+  background-color: #fbbf24;
+  color: #000;
 }
 
 /* Global Search Styles */
@@ -4185,7 +4186,7 @@ mark {
 }
 
 .dark .reader-content {
-  background: #0d1117;
+  background: #020617;
 }
 
 .reader-lines {
@@ -4196,17 +4197,28 @@ mark {
 .reader-line {
   display: flex;
   gap: 1rem;
+  padding: 5px 0;
   line-height: 1.4;
   white-space: pre-wrap;
   word-break: break-all;
 }
 
+.reader-lines.zebra .reader-line:nth-child(even) {
+  background: rgba(0, 0, 0, 0.035);
+}
+
+.dark .reader-lines.zebra .reader-line:nth-child(even) {
+  background: rgba(255, 255, 255, 0.11);
+}
+
 .reader-line:hover {
-  background: rgba(0, 0, 0, 0.03);
+  background: rgba(99, 102, 241, 0.08) !important;
+  box-shadow: inset 4px 0 0 var(--primary);
 }
 
 .dark .reader-line:hover {
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(129, 140, 248, 0.22) !important;
+  box-shadow: inset 4px 0 0 var(--primary);
 }
 
 .line-number {
@@ -4321,6 +4333,11 @@ mark {
 }
 
 .font-btn:hover {
+  background-color: var(--hover-bg);
+  color: var(--primary);
+}
+
+.font-btn.active {
   background-color: var(--hover-bg);
   color: var(--primary);
 }

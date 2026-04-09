@@ -10,7 +10,7 @@
     </div>
 
     <div v-else ref="scrollContainer" class="reader-content" @scroll="handleScroll">
-      <div class="reader-lines" :style="{ fontSize: fontSize + 'px' }">
+      <div class="reader-lines" :class="{ zebra: isZebra }" :style="{ fontSize: fontSize + 'px' }">
         <div v-for="(line, index) in lines" :key="index" class="reader-line">
           <span class="line-number">{{ startLine + index + 1 }}</span>
           <pre class="line-text">{{ line }}</pre>
@@ -33,6 +33,9 @@
             <button class="jump-btn" @click="handleJump">{{ t('jump') }}</button>
           </div>
           <div class="font-controls">
+            <button class="font-btn" :class="{ active: isZebra }" :title="t('zebraMode')" @click="isZebra = !isZebra">
+              <IconRows :width="14" :height="14" />
+            </button>
             <button class="font-btn" :title="t('decreaseFontSize')" @click="decreaseFontSize">-</button>
             <span class="font-size-label">{{ fontSize }}px</span>
             <button class="font-btn" :title="t('increaseFontSize')" @click="increaseFontSize">+</button>
@@ -48,6 +51,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from '@/i18n/useI18n'
 import { fetchFileContent, fetchStructure } from '@/services/api'
+import IconRows from '@/components/icons/IconRows.vue'
 import type { TreeFile, TreeFolder, TreeRootNode } from '@/types'
 
 const props = defineProps<{
@@ -65,6 +69,7 @@ const hasMore = ref(true)
 const scrollContainer = ref<HTMLElement | null>(null)
 const sourceName = ref('')
 const fontSize = ref(13)
+const isZebra = ref(false)
 const startLine = ref(0)
 const jumpLine = ref<number | null>(null)
 
@@ -75,13 +80,14 @@ async function loadLines() {
 
   loading.value = true
   try {
-    const data = await fetchFileContent(props.sourceId, page.value, limit)
+    const nextLine = startLine.value + lines.value.length
+    const data = await fetchFileContent(props.sourceId, 1, limit, nextLine)
     if (data.lines.length < limit) {
       hasMore.value = false
     }
     lines.value.push(...data.lines)
     totalLines.value = data.totalLines
-    page.value++
+    page.value = data.page + 1
   } finally {
     loading.value = false
   }

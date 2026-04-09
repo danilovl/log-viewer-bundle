@@ -93,6 +93,7 @@ export interface TranslationMessages {
   searchTemplates: string
   searchCaseSensitive: string
   zenMode: string
+  zebraMode: string
   highlightSearch: string
   bookmarks: string
   allBookmarks: string
@@ -245,6 +246,7 @@ const en: TranslationMessages = {
   searchCaseSensitive: 'Case Sensitive',
   highlightSearch: 'Highlight Search',
   zenMode: 'Zen Mode',
+  zebraMode: 'Zebra Mode',
   bookmarks: 'Bookmarks',
   allBookmarks: 'All bookmarks',
   bookmarksTitle: 'Show only bookmarked entries',
@@ -393,6 +395,7 @@ const zh: TranslationMessages = {
   searchCaseSensitive: '区分大小写',
   highlightSearch: '高亮搜索',
   zenMode: '禅模式',
+  zebraMode: '斑马模式',
   bookmarks: '书签',
   allBookmarks: '所有书签',
   bookmarksTitle: '仅显示已标记的条目',
@@ -542,6 +545,7 @@ const hi: TranslationMessages = {
   searchCaseSensitive: 'केс-सेंसिटिव',
   highlightSearch: 'हाइलाइट सर्च',
   zenMode: 'Zen मोड',
+  zebraMode: 'जेबरा मोड',
   bookmarks: 'बुकमार्क',
   allBookmarks: 'सभी बुकमार्क',
   bookmarksTitle: 'केवल बुकमार्क की गई प्रविष्टियाँ दिखाएँ',
@@ -692,6 +696,7 @@ const es: TranslationMessages = {
   searchCaseSensitive: 'Sensible a mayúsculas',
   highlightSearch: 'Resaltar búsqueda',
   zenMode: 'Modo Zen',
+  zebraMode: 'Modo Cebra',
   bookmarks: 'Marcadores',
   allBookmarks: 'Todos los marcadores',
   bookmarksTitle: 'Mostrar solo entradas marcadas',
@@ -843,6 +848,7 @@ const fr: TranslationMessages = {
   searchCaseSensitive: 'Sensible à la casse',
   highlightSearch: 'Surligner la recherche',
   zenMode: 'Mode Zen',
+  zebraMode: 'Mode Zèbre',
   bookmarks: 'Signets',
   allBookmarks: 'Tous les signets',
   bookmarksTitle: 'Afficher uniquement les entrées marquées',
@@ -992,6 +998,7 @@ const ar: TranslationMessages = {
   searchCaseSensitive: 'حساس لحالة الأحرف',
   highlightSearch: 'تسليط الضوء على البحث',
   zenMode: 'وضع Zen',
+  zebraMode: 'وضع الزيبра',
   bookmarks: 'العلامات المرجعية',
   allBookmarks: 'كل العلامات المرجعية',
   bookmarksTitle: 'عرض الإدخالات المحفوظة فقط',
@@ -1142,6 +1149,7 @@ const pt: TranslationMessages = {
   searchCaseSensitive: 'Sensível a maiúsculas',
   highlightSearch: 'Destacar pesquisa',
   zenMode: 'Modo Zen',
+  zebraMode: 'Modo Zebra',
   bookmarks: 'Favoritos',
   allBookmarks: 'Todos os favoritos',
   bookmarksTitle: 'Mostrar apenas entradas favoritas',
@@ -1292,6 +1300,7 @@ const ru: TranslationMessages = {
   searchCaseSensitive: 'Учитывать регистр',
   highlightSearch: 'Подсветка поиска',
   zenMode: 'Zen Режим',
+  zebraMode: 'Режим зебры',
   bookmarks: 'Закладки',
   allBookmarks: 'Все закладки',
   bookmarksTitle: 'Показать только отмеченные записи',
@@ -1441,6 +1450,7 @@ const ja: TranslationMessages = {
   searchCaseSensitive: '大文字と小文字を区別',
   highlightSearch: '検索結果を強調表示',
   zenMode: '禅モード',
+  zebraMode: 'ゼブラモード',
   bookmarks: 'ブックマーク',
   allBookmarks: 'すべてのブックマーク',
   bookmarksTitle: 'ブックマークされたエントリのみを表示',
@@ -1592,6 +1602,7 @@ const de: TranslationMessages = {
   searchCaseSensitive: 'Groß-/Kleinschreibung',
   highlightSearch: 'Suche hervorheben',
   zenMode: 'Zen-Modus',
+  zebraMode: 'Zebra-Modus',
   bookmarks: 'Lesezeichen',
   allBookmarks: 'Alle Lesezeichen',
   bookmarksTitle: 'Nur markierte Einträge anzeigen',

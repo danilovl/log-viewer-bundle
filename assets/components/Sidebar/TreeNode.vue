@@ -154,7 +154,6 @@ function handleViewContent(file: TreeFile): void {
   const url = router.resolve({
     name: 'file-reader',
     params: { sourceId: file.id },
-    query: { line: 0 },
   }).href
   window.open(url, '_blank')
 }

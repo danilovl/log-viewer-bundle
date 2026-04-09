@@ -46,6 +46,6 @@ final class FileContentReaderTest extends TestCase
     public function testGetTotalLines(): void
     {
         $reader = new FileContentReader;
-        $this->assertSame(4, $reader->getTotalLines($this->tempFile));
+        $this->assertSame(5, $reader->getTotalLines($this->tempFile));
     }
 }
