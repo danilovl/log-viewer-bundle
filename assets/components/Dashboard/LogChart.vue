@@ -38,6 +38,7 @@
     <div class="apex-chart-wrapper">
       <ApexChart
         v-if="store.dashboard.stats"
+        :key="store.dashboard.stats?.calculatedAt"
         height="350"
         :type="chartType"
         :options="chartOptions"
@@ -106,8 +107,6 @@ const chartSeries = computed(() => {
 const chartOptions = computed(() => {
   const textColor = isDark.value ? '#94a3b8' : '#64748b'
   const gridColor = isDark.value ? '#334155' : '#f1f5f9'
-  const tooltipBg = isDark.value ? '#1e293b' : '#ffffff'
-  const tooltipText = isDark.value ? '#f1f5f9' : '#0f172a'
 
   return {
     chart: {
