@@ -38,7 +38,7 @@
     <div class="apex-chart-wrapper">
       <ApexChart
         v-if="store.dashboard.stats"
-        :key="store.dashboard.stats?.calculatedAt"
+        :key="store.dashboard.timelineFormat"
         height="350"
         :type="chartType"
         :options="chartOptions"
@@ -82,7 +82,7 @@ const chartSeries = computed(() => {
   const rawTimeline = store.dashboard.stats?.timeline || {}
   const data = Object.entries(rawTimeline)
     .map(([date, val]) => {
-      const xDate = typeof date === 'string' ? new Date(date.replace('  ', 'T')).getTime() : 0
+      const xDate = typeof date === 'string' ? new Date(date.replace(' ', 'T')).getTime() : 0
 
       return {
         x: xDate,
@@ -98,6 +98,7 @@ const chartSeries = computed(() => {
 
   return [
     {
+      id: 'main-total-entries',
       name: t('totalEntries'),
       data,
     },
@@ -110,7 +111,7 @@ const chartOptions = computed(() => {
 
   return {
     chart: {
-      id: 'log-timeline',
+      id: 'log-viewer-dashboard-chart',
       type: chartType.value,
       toolbar: {
         show: true,
@@ -178,8 +179,11 @@ const chartOptions = computed(() => {
     },
     xaxis: {
       type: 'datetime',
+      tickAmount: store.dashboard.timelineFormat === 'hour' ? 12 : 10,
       labels: {
         datetimeUTC: false,
+        hideOverlappingLabels: true,
+        showDuplicates: false,
         style: {
           colors: textColor,
         },
@@ -228,6 +232,8 @@ const chartOptions = computed(() => {
       },
     },
     tooltip: {
+      shared: false,
+      intersect: false,
       theme: isDark.value ? 'dark' : 'light',
       x: {
         format: store.dashboard.timelineFormat === 'hour' ? 'dd MMM HH:mm' : 'dd MMM yyyy',
@@ -246,6 +252,9 @@ const chartOptions = computed(() => {
       hover: {
         size: 5,
       },
+    },
+    legend: {
+      show: false,
     },
   }
 })
