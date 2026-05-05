@@ -136,7 +136,7 @@ class LogFileReader
                 }
 
                 $entry = $this->parser->parse($trimmedLine, $filePath, $parserType);
-                if ($hasFilters && $filters !== null && !$this->applyFilters($entry, $filters, null, 'desc', $searchRegexPattern)) {
+                if ($hasFilters && !$this->applyFilters($entry, $filters, null, 'desc', $searchRegexPattern)) {
                     continue;
                 }
 
@@ -309,7 +309,7 @@ class LogFileReader
 
                 $entry = $this->parser->parse($trimmedLine, $filePath, $parserType);
 
-                if ($hasFilters && $filters !== null && !$this->applyFilters($entry, $filters, null, 'asc', $searchRegexPattern)) {
+                if ($hasFilters && !$this->applyFilters($entry, $filters, null, 'asc', $searchRegexPattern)) {
                     $newPosition = ftell($handle) ?: $newPosition;
 
                     continue;

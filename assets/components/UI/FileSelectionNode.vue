@@ -52,7 +52,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, withDefaults } from 'vue'
+import { ref } from 'vue'
 import type { TreeFolder } from '@/types'
 import { formatBytes } from '@/utils/format'
 import IconChevron from '@/components/icons/IconChevron.vue'
