@@ -124,8 +124,10 @@ export function useLogData(options: LogDataOptions) {
   }
 
   async function loadLogStats(): Promise<void> {
-    if (filters.filterBookmarks) {
-      pagination.totalEntries = sourceBookmarks.value.length
+    if (!source.id || filters.filterBookmarks) {
+      if (filters.filterBookmarks) {
+        pagination.totalEntries = sourceBookmarks.value.length
+      }
 
       return
     }

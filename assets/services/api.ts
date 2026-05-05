@@ -340,8 +340,9 @@ export async function fetchGlobalSearch(
   duration: number
 }> {
   const startTime = performance.now()
+  const sourceId = sourceIds.join(',')
   const params: Record<string, string | number> = {
-    sourceId: sourceIds.join(','),
+    sourceId,
     limit,
     offset,
     sortDir,
