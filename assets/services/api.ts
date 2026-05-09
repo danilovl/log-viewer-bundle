@@ -94,7 +94,11 @@ export async function fetchLogStats(
   isDownloadable: boolean
   isReadable: boolean
   duration: number
-}> {
+} | null> {
+  if (!sourceId) {
+    return null
+  }
+
   const startTime = performance.now()
   const params: Record<string, string> = { sourceId }
 
@@ -161,7 +165,11 @@ export async function fetchLogEntries(
   isDownloadable: boolean
   isReadable: boolean
   duration: number
-}> {
+} | null> {
+  if (!sourceId) {
+    return null
+  }
+
   const startTime = performance.now()
   const params: Record<string, string | number> = {
     sourceId,
@@ -222,7 +230,11 @@ export async function fetchLogEntriesCount(
 ): Promise<{
   totalCount: number
   duration: number
-}> {
+} | null> {
+  if (!sourceId) {
+    return null
+  }
+
   const startTime = performance.now()
   const params: Record<string, string> = { sourceId }
 
@@ -285,10 +297,18 @@ export async function fetchNewLogEntries(
 }
 
 export async function deleteLogFile(sourceId: string): Promise<void> {
+  if (!sourceId) {
+    return
+  }
+
   await axios.delete(`${apiPrefix}/delete`, { params: { sourceId } })
 }
 
-export async function downloadLogFile(sourceId: string): Promise<Blob> {
+export async function downloadLogFile(sourceId: string): Promise<Blob | null> {
+  if (!sourceId) {
+    return null
+  }
+
   const response = await axios.get(`${apiPrefix}/download`, {
     params: { sourceId },
     responseType: 'blob',
@@ -307,7 +327,11 @@ export async function fetchFileContent(
   page: number
   limit: number
   totalLines: number
-}> {
+} | null> {
+  if (!sourceId) {
+    return null
+  }
+
   const params: Record<string, any> = { sourceId, page, limit }
   if (line !== undefined) {
     params.line = line

@@ -34,6 +34,10 @@ export function useLogFiles(source: { id: string; path: string }, loadStructure:
   async function downloadFile(id: string): Promise<void> {
     try {
       const blob = await downloadLogFile(id)
+      if (!blob) {
+        return
+      }
+
       const url = window.URL.createObjectURL(blob)
       const link = document.createElement('a')
 

@@ -49,11 +49,7 @@
             <span>{{ store.entries.responseTime }}</span>
             ms
           </div>
-          <select
-            class="header-locale-select"
-            :value="currentLocale"
-            @change="setLocale(($event.target as HTMLSelectElement).value as Locale)"
-          >
+          <select class="header-locale-select" :value="currentLocale" @change="setLocale(($event.target as any).value)">
             <option v-for="opt in localeOptions" :key="opt.code" :value="opt.code">{{ opt.name }}</option>
           </select>
           <button class="header-btn" :title="t('zenMode')" @click="store.isZenMode = true">
@@ -89,7 +85,6 @@ import { ref } from 'vue'
 import { useLogStore } from '@/stores/useLogStore'
 import { useI18n } from '@/i18n/useI18n'
 import { useTheme } from '@/composables/useTheme'
-import type { Locale } from '@/i18n/translations'
 import SidebarLayout from '@/components/Sidebar/SidebarLayout.vue'
 import NoDataView from '@/views/NoDataView.vue'
 import SettingsModal from '@/components/UI/SettingsModal.vue'

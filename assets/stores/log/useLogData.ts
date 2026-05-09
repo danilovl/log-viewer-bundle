@@ -145,7 +145,7 @@ export function useLogData(options: LogDataOptions) {
         filters.filterSearchRegex,
         filters.filterSearchCaseSensitive,
       )
-      if (requestId !== currentStatsRequest) {
+      if (!result || requestId !== currentStatsRequest) {
         return
       }
 
@@ -218,7 +218,7 @@ export function useLogData(options: LogDataOptions) {
         filters.filterSearchRegex,
         filters.filterSearchCaseSensitive,
       )
-      if (requestId !== currentCountRequest) {
+      if (!result || requestId !== currentCountRequest) {
         return
       }
 
@@ -288,7 +288,7 @@ export function useLogData(options: LogDataOptions) {
         filters.filterSearchCaseSensitive,
       )
 
-      if (requestId !== currentEntriesRequest) {
+      if (!result || requestId !== currentEntriesRequest) {
         return
       }
 

@@ -82,6 +82,10 @@ async function loadLines() {
   try {
     const nextLine = startLine.value + lines.value.length
     const data = await fetchFileContent(props.sourceId, 1, limit, nextLine)
+    if (!data) {
+      return
+    }
+
     if (data.lines.length < limit) {
       hasMore.value = false
     }
@@ -102,6 +106,10 @@ async function handleJump() {
   loading.value = true
   try {
     const data = await fetchFileContent(props.sourceId, 1, limit, line)
+    if (!data) {
+      return
+    }
+
     lines.value = data.lines
     totalLines.value = data.totalLines
     page.value = data.page

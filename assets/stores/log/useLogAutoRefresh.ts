@@ -220,12 +220,6 @@ export function useLogAutoRefresh(options: AutoRefreshOptions) {
     },
   )
 
-  onUnmounted(() => {
-    stopAutoRefresh()
-    stopDashboardAutoRefresh()
-    stopLiveAutoRefresh()
-  })
-
   return {
     refreshCountdown,
     dashboardRefreshCountdown,
