@@ -91,12 +91,12 @@ class LogSourceManager
 
         foreach ($dirs as $dir) {
             $isExists = $fs->exists($dir);
-            if (!$isExists) {
+            if (!$isExists || !is_readable($dir)) {
                 continue;
             }
 
             $finder = new Finder;
-            $finder->files()->in($dir)->name('*.log')->sortByName();
+            $finder->files()->in($dir)->name('*.log')->sortByName()->ignoreUnreadableDirs();
 
             foreach ($finder as $file) {
                 $path = $file->getPathname();
@@ -230,6 +230,10 @@ class LogSourceManager
     {
         $folders = [];
         foreach ($this->configurationProvider->sourceDirs as $dir) {
+            if (!is_readable($dir)) {
+                continue;
+            }
+
             $folders[] = new LogViewerFolder(
                 path: $dir,
                 name: basename($dir),
