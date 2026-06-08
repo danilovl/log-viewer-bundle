@@ -29,7 +29,6 @@ final class LogFileReaderRegexTest extends TestCase
 
     public function testGetEntriesWithRegexFilter(): void
     {
-        // Паттерн, который НЕ совпадает как подстрока с "critical message", но совпадает как regex
         $search = 'crit.*cal';
         $filters = LogViewerFilters::fromQueryParams(
             level: null,
@@ -40,9 +39,6 @@ final class LogFileReaderRegexTest extends TestCase
 
         $entries = $this->reader->getEntries($this->logPath, 'monolog', 10, null, $filters);
 
-        // В текущей реализации mb_stripos("critical message", "crit.*cal") вернет false,
-        // и строка будет отфильтрована ДО вызова applyFilters.
-        // Ожидаем 1 запись, если баг будет исправлен.
         $this->assertCount(1, $entries, 'Regex search should find "critical message" with pattern "crit.*cal"');
         $this->assertSame('CRITICAL', $entries[0]->level);
     }

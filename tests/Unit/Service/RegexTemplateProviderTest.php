@@ -49,7 +49,6 @@ class RegexTemplateProviderTest extends TestCase
 
     public static function provideRegexMatchCases(): Generator
     {
-        // PHP matches
         yield ['symfony_deprecation_php', self::getSpecificRegex('symfony_deprecation', 'php'), 'User Deprecated: Some feature is deprecated', true];
         yield ['symfony_security_php', self::getSpecificRegex('symfony_security', 'php'), 'Authentication request failed: Bad credentials', true];
         yield ['symfony_messenger_php', self::getSpecificRegex('symfony_messenger', 'php'), 'Error thrown while handling message App\Message\MyMessage. Sending for retry', true];
@@ -70,7 +69,6 @@ class RegexTemplateProviderTest extends TestCase
         yield ['grpc_error_php', self::getSpecificRegex('grpc_error', 'php'), 'rpc error: code = NotFound desc = user not found', true];
         yield ['sql_connection_error_php', self::getSpecificRegex('sql_connection_error', 'php'), 'SQLSTATE[HY000] [2002] Connection refused', true];
 
-        // Go matches
         yield ['exception_go', self::getSpecificRegex('exception', 'go'), 'panic: something went wrong', true];
         yield ['sql_error_go', self::getSpecificRegex('sql_error', 'go'), 'sql: no rows in result set', true];
         yield ['stack_trace_go', self::getSpecificRegex('stack_trace', 'go'), 'goroutine 1 [running]:', true];
@@ -83,7 +81,6 @@ class RegexTemplateProviderTest extends TestCase
         yield ['grpc_error_go', self::getSpecificRegex('grpc_error', 'go'), 'rpc error: code = Unimplemented desc = unknown service', true];
         yield ['sql_connection_error_go', self::getSpecificRegex('sql_connection_error', 'go'), 'connection refused', true];
 
-        // Universal matches (using PHP side for extraction)
         yield ['ipv4_address', self::getSpecificRegex('ipv4_address', 'php'), '127.0.0.1', true];
         yield ['ipv4_address', self::getSpecificRegex('ipv4_address', 'php'), '255.255.255.255', true];
         yield ['ipv4_address', self::getSpecificRegex('ipv4_address', 'php'), '256.0.0.1', false];
@@ -153,7 +150,6 @@ class RegexTemplateProviderTest extends TestCase
         yield ['quoted_string', self::getSpecificRegex('quoted_string', 'php'), '"hello \"world\""', true];
         yield ['quoted_string', self::getSpecificRegex('quoted_string', 'php'), "'it\'s fine'", true];
 
-        // New PHP matches
         yield ['file_path_php', self::getSpecificRegex('file_path', 'php'), '/var/log/nginx/error.log', true];
         yield ['file_path_php', self::getSpecificRegex('file_path', 'php'), 'C:\\Windows\\System32\\drivers\\etc\\hosts', true];
         yield ['http_method_php', self::getSpecificRegex('http_method', 'php'), 'POST', true];
@@ -167,7 +163,6 @@ class RegexTemplateProviderTest extends TestCase
         yield ['auth_user_php', self::getSpecificRegex('auth_user', 'php'), 'user_id:42', true];
         yield ['stack_frame_php', self::getSpecificRegex('stack_frame', 'php'), 'at /path/to/file.php:88', true];
 
-        // New Go matches
         yield ['file_path_go', self::getSpecificRegex('file_path', 'go'), '/usr/local/bin/go', true];
         yield ['http_method_go', self::getSpecificRegex('http_method', 'go'), 'GET', true];
         yield ['memory_usage_go', self::getSpecificRegex('memory_usage', 'go'), 'Alloc = 123 TotalAlloc = 456 Sys = 789 NumGC = 1', true];
@@ -179,7 +174,6 @@ class RegexTemplateProviderTest extends TestCase
         yield ['auth_user_go', self::getSpecificRegex('auth_user', 'go'), 'uid:1001', true];
         yield ['stack_frame_go', self::getSpecificRegex('stack_frame', 'go'), 'main.go:42', true];
 
-        // Even more matches from Mock logs
         yield ['http_referrer_php', self::getSpecificRegex('http_referrer', 'php'), 'referrer: "http://app.local:81/test/log-viewer/logs/99fe3432e46e"', true];
         yield ['user_agent_php', self::getSpecificRegex('user_agent', 'php'), '"Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:148.0) Gecko/20100101 Firefox/148.0"', true];
         yield ['process_id_php', self::getSpecificRegex('process_id', 'php'), 'supervisord started with pid 733', true];

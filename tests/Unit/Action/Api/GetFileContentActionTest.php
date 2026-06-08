@@ -134,7 +134,6 @@ class GetFileContentActionTest extends TestCase
         );
 
         $this->sourceManager->method('getSourceById')->willReturn($source);
-        // Page 1, limit 2, jump to line 3 (index 2)
         $this->logViewer->method('getFileContent')->willReturn([
             'lines' => ['line3', 'line4'],
             'page' => 2,
@@ -148,18 +147,6 @@ class GetFileContentActionTest extends TestCase
 
         $this->assertEquals(JsonResponse::HTTP_OK, $response->getStatusCode());
         $this->assertEquals(['line3', 'line4'], $data['lines']);
-        // (line 2 + count 2) / limit 2 = 2. Floor(2) + 1 = 3? 
-        // 0, 1 -> page 1
-        // 2, 3 -> page 2
-        // 4 -> page 3
-        // Line index 2 is in page 2.
-        // My logic in action: (int) floor(($line + count($lines)) / $limit) + 1;
-        // (2 + 2) / 2 = 2. Floor(2) + 1 = 3. 
-        // Wait, if limit is 2, lines are [0, 1], [2, 3], [4].
-        // Line index 2 is the start of the second page. 
-        // (2 + 2) / 2 = 2. 
-        // Maybe the logic should be: floor($line / $limit) + 1
-        // 2 / 2 = 1. 1 + 1 = 2. Correct.
 
         $this->assertEquals(2, $data['page']);
 

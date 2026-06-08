@@ -147,9 +147,9 @@ final class GoParserFilterTest extends TestCase
     {
         yield ['monolog.log', 'monolog', 'test', 1];
         yield ['monolog.log', 'monolog', 'message', 3];
-        yield ['monolog.log', 'monolog', 'TEST', 1]; // Case-insensitive by default
-        yield ['monolog.log', 'monolog', 'TEST', 0, false, true]; // Case-sensitive
-        yield ['monolog.log', 'monolog', 't.st', 1, true]; // Regex
+        yield ['monolog.log', 'monolog', 'TEST', 1];
+        yield ['monolog.log', 'monolog', 'TEST', 0, false, true];
+        yield ['monolog.log', 'monolog', 't.st', 1, true];
         yield ['json.log', 'json', 'JSON', 2];
         yield ['json.log', 'json', 'error', 1];
     }

@@ -88,9 +88,6 @@ final class GoParserSortTest extends TestCase
 
     public static function provideCursorCases(): Generator
     {
-        // Cursor points to an entry, desc mode should return entries OLDER than cursor
-        // monolog has timestamps: 14, 15, 16
-        // Go-parser uses RFC3339 without timezone or with +00:00 for matching depending on input
         yield ['monolog.log', 'monolog', '2026-03-29 09:44:16', 2];
         yield ['monolog.log', 'monolog', '2026-03-29 09:44:15', 1];
         yield ['monolog.log', 'monolog', '2026-03-29 09:44:14', 0];

@@ -25,7 +25,6 @@ final class FilterDateMicrosecondsTest extends TestCase
         $method = new ReflectionMethod(LogFileReader::class, 'applyFilters');
         $method->setAccessible(true);
 
-        // Entry with microseconds in original timestamp, but normalized to Y-m-d H:i:s
         $entry = new LogEntry(
             timestamp: '2026-04-06T15:54:08.940640+02:00',
             level: 'INFO',
@@ -36,7 +35,6 @@ final class FilterDateMicrosecondsTest extends TestCase
             context: []
         );
 
-        // Filter for exactly the same second
         $filters = LogViewerFilters::fromQueryParams(
             level: null,
             channel: null,
@@ -48,7 +46,6 @@ final class FilterDateMicrosecondsTest extends TestCase
         $result = $method->invoke($this->reader, $entry, $filters, null, 'desc');
         $this->assertTrue($result, 'Should match when filter second is same as entry second (ignoring microseconds)');
 
-        // Filter starts just after the second
         $filtersAfter = LogViewerFilters::fromQueryParams(
             level: null,
             channel: null,
@@ -59,7 +56,6 @@ final class FilterDateMicrosecondsTest extends TestCase
         $resultAfter = $method->invoke($this->reader, $entry, $filtersAfter, null, 'desc');
         $this->assertFalse($resultAfter, 'Should NOT match when filter start is after entry second');
 
-        // Filter ends just before the second
         $filtersBefore = LogViewerFilters::fromQueryParams(
             level: null,
             channel: null,

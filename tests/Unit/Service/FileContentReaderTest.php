@@ -26,19 +26,15 @@ final class FileContentReaderTest extends TestCase
     {
         $reader = new FileContentReader;
 
-        // Page 1, limit 2
         $lines = $reader->readLines($this->tempFile, 1, 2);
         $this->assertSame(['Line 1', 'Line 2'], $lines);
 
-        // Page 2, limit 2
         $lines = $reader->readLines($this->tempFile, 2, 2);
         $this->assertSame(['Line 3', 'Line 4'], $lines);
 
-        // Page 3, limit 2
         $lines = $reader->readLines($this->tempFile, 3, 2);
         $this->assertSame(['Line 5'], $lines);
 
-        // Page 4, limit 2 (empty)
         $lines = $reader->readLines($this->tempFile, 4, 2);
         $this->assertSame([], $lines);
     }
