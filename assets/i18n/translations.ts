@@ -236,7 +236,8 @@ const en: TranslationMessages = {
   viewContent: 'View content',
   lines: 'lines',
   clear: 'Clear',
-  clearConfirm: 'Are you sure you want to clear the log file "{name}"? The file will remain but its content will be deleted.',
+  clearConfirm:
+    'Are you sure you want to clear the log file "{name}"? The file will remain but its content will be deleted.',
   clearNotAllowed: 'Clearing files is not allowed.',
   remoteClearNotAllowed: 'Clearing remote files is not allowed.',
   clearErrorPermissions: 'Error clearing file. Check permissions.',
@@ -545,7 +546,8 @@ const hi: TranslationMessages = {
   viewContent: 'सामग्री देखें',
   lines: 'पंक्तियाँ',
   clear: 'Clear',
-  clearConfirm: 'Are you sure you want to clear the log file "{name}"? The file will remain but its content will be deleted.',
+  clearConfirm:
+    'Are you sure you want to clear the log file "{name}"? The file will remain but its content will be deleted.',
   clearNotAllowed: 'Clearing files is not allowed.',
   remoteClearNotAllowed: 'Clearing remote files is not allowed.',
   clearErrorPermissions: 'Error clearing file. Check permissions.',
@@ -701,7 +703,8 @@ const es: TranslationMessages = {
   viewContent: 'Ver contenido',
   lines: 'líneas',
   clear: 'Limpiar',
-  clearConfirm: '¿Está seguro de que desea limpiar el archivo de log "{name}"? El archivo permanecerá pero su contenido será eliminado.',
+  clearConfirm:
+    '¿Está seguro de que desea limpiar el archivo de log "{name}"? El archivo permanecerá pero su contenido será eliminado.',
   clearNotAllowed: 'No está permitido limpiar archivos.',
   remoteClearNotAllowed: 'No está permitido limpiar archivos remotos.',
   clearErrorPermissions: 'Error al limpiar el archivo. Compruebe los permisos.',
@@ -858,7 +861,8 @@ const fr: TranslationMessages = {
   viewContent: 'Voir le contenu',
   lines: 'lignes',
   clear: 'Effacer',
-  clearConfirm: 'Êtes-vous sûr de vouloir effacer le fichier log "{name}" ? Le fichier restera mais son contenu sera supprimé.',
+  clearConfirm:
+    'Êtes-vous sûr de vouloir effacer le fichier log "{name}" ? Le fichier restera mais son contenu sera supprimé.',
   clearNotAllowed: "L'effacement des fichiers n'est pas autorisé.",
   remoteClearNotAllowed: "L'effacement des fichiers distants n'est pas autorisé.",
   clearErrorPermissions: "Erreur lors de l'effacement du fichier. Vérifiez les permissions.",
@@ -1169,7 +1173,8 @@ const pt: TranslationMessages = {
   viewContent: 'Visualizar conteúdo',
   lines: 'linhas',
   clear: 'Limpar',
-  clearConfirm: 'Tem certeza de que deseja limpar o arquivo de log "{name}"? O arquivo permanecerá, mas seu conteúdo será excluído.',
+  clearConfirm:
+    'Tem certeza de que deseja limpar o arquivo de log "{name}"? O arquivo permanecerá, mas seu conteúdo será excluído.',
   clearNotAllowed: 'A limpeza de arquivos não é permitida.',
   remoteClearNotAllowed: 'A limpeza de arquivos remotos não é permitida.',
   clearErrorPermissions: 'Erro ao limpar o arquivo. Verifique as permissões.',
@@ -1636,7 +1641,8 @@ const de: TranslationMessages = {
   viewContent: 'Inhalt anzeigen',
   lines: 'Linien',
   clear: 'Leeren',
-  clearConfirm: 'Sind Sie sicher, dass Sie die Log-Datei „{name}" leeren möchten? Die Datei bleibt erhalten, aber ihr Inhalt wird gelöscht.',
+  clearConfirm:
+    'Sind Sie sicher, dass Sie die Log-Datei „{name}" leeren möchten? Die Datei bleibt erhalten, aber ihr Inhalt wird gelöscht.',
   clearNotAllowed: 'Das Leeren von Dateien ist nicht erlaubt.',
   remoteClearNotAllowed: 'Das Leeren von Remote-Dateien ist nicht erlaubt.',
   clearErrorPermissions: 'Fehler beim Leeren der Datei. Überprüfen Sie die Berechtigungen.',
