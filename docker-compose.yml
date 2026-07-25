@@ -8,8 +8,6 @@ services:
     volumes:
       - "./:/var/www/html/app"
     working_dir: /var/www/html/app
-    env_file:
-      - .env
 
   go:
     build:
