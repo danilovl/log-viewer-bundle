@@ -1,6 +1,6 @@
 import { useI18n } from '@/i18n/useI18n'
 import router from '@/router'
-import { deleteLogFile as apiDeleteLogFile, downloadLogFile } from '@/services/api'
+import { deleteLogFile as apiDeleteLogFile, clearLogFile as apiClearLogFile, downloadLogFile } from '@/services/api'
 import { useModalStore } from '@/stores/useModalStore'
 
 export function useLogFiles(source: { id: string; path: string }, loadStructure: () => Promise<void>) {
@@ -21,10 +21,32 @@ export function useLogFiles(source: { id: string; path: string }, loadStructure:
 
     try {
       await apiDeleteLogFile(id)
+      await loadStructure()
       if (source.id === id) {
         router.push({ name: 'dashboard' })
-      } else {
-        await loadStructure()
+      }
+    } catch (e: any) {
+      console.error('Error:', e)
+    }
+  }
+
+  async function clearFile(id: string, name: string): Promise<void> {
+    const confirmed = await modalStore.confirm({
+      title: t('clear'),
+      message: t('clearConfirm', { name }),
+      type: 'danger',
+      confirmText: t('clear'),
+    })
+
+    if (!confirmed) {
+      return
+    }
+
+    try {
+      await apiClearLogFile(id)
+      await loadStructure()
+      if (source.id === id) {
+        router.push({ name: 'logs', params: { sourceId: id } })
       }
     } catch (e: any) {
       console.error('Error:', e)
@@ -56,6 +78,7 @@ export function useLogFiles(source: { id: string; path: string }, loadStructure:
 
   return {
     deleteFile,
+    clearFile,
     downloadFile,
   }
 }

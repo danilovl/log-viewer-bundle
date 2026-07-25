@@ -260,7 +260,7 @@ export const useLogStore = defineStore('log', () => {
     isStructureLoaded.value = true
   }
 
-  const { deleteFile, downloadFile } = useLogFiles(source, loadStructure)
+  const { deleteFile, clearFile, downloadFile } = useLogFiles(source, loadStructure)
 
   watch(
     () => {
@@ -444,6 +444,7 @@ export const useLogStore = defineStore('log', () => {
     prevPage,
     toggleSort,
     deleteFile,
+    clearFile,
     downloadFile,
     resetLiveFilters,
     syncFiltersFromUrl: filtersComposable.syncFiltersFromUrl,

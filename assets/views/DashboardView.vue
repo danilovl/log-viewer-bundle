@@ -171,6 +171,15 @@
                 </button>
                 <button
                   v-if="source.canDelete"
+                  class="action-btn clear-btn"
+                  :disabled="!source.isDeletable"
+                  v-tooltip="source.isDeletable ? t('clear') : t('noDeletePermission')"
+                  @click.stop="handleClear(source)"
+                >
+                  <IconFileX :width="14" :height="14" />
+                </button>
+                <button
+                  v-if="source.canDelete"
                   class="action-btn delete-btn"
                   :disabled="!source.isDeletable"
                   v-tooltip="source.isDeletable ? t('delete') : t('noDeletePermission')"
@@ -244,6 +253,7 @@ import IconStar from '@/components/icons/IconStar.vue'
 import IconEye from '@/components/icons/IconEye.vue'
 import IconDownload from '@/components/icons/IconDownload.vue'
 import IconDelete from '@/components/icons/IconDelete.vue'
+import IconFileX from '@/components/icons/IconFileX.vue'
 import LogChart from '@/components/Dashboard/LogChart.vue'
 import DashboardSkeleton from '@/components/Dashboard/DashboardSkeleton.vue'
 
@@ -376,6 +386,10 @@ function handleDownload(source: SourceInfo): void {
 
 function handleDelete(source: SourceInfo): void {
   store.deleteFile(source.id, source.name)
+}
+
+function handleClear(source: SourceInfo): void {
+  store.clearFile(source.id, source.name)
 }
 
 onMounted(() => {

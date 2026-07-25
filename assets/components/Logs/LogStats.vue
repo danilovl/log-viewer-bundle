@@ -54,6 +54,16 @@
         </button>
         <button
           v-if="store.source.canDelete"
+          class="btn-icon btn-clear"
+          :class="{ disabled: !store.source.isDeletable }"
+          :title="store.source.isDeletable ? t('clear') : t('noDeletePermission')"
+          :disabled="!store.source.isDeletable"
+          @click="store.clearFile(store.source.id, getFileName(store.source.path))"
+        >
+          <IconFileX :width="16" :height="16" />
+        </button>
+        <button
+          v-if="store.source.canDelete"
           class="btn-icon btn-delete"
           :class="{ disabled: !store.source.isDeletable }"
           :title="store.source.isDeletable ? t('delete') : t('noDeletePermission')"
@@ -114,6 +124,7 @@ import { useLogBookmarks } from '@/stores/log/useLogBookmarks'
 import { formatBytes, formatDateTime, getFileName } from '@/utils/format'
 import IconDownload from '@/components/icons/IconDownload.vue'
 import IconDelete from '@/components/icons/IconDelete.vue'
+import IconFileX from '@/components/icons/IconFileX.vue'
 import IconEye from '@/components/icons/IconEye.vue'
 import IconStar from '@/components/icons/IconStar.vue'
 import DotLoader from '@/components/UI/DotLoader.vue'

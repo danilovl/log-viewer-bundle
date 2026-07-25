@@ -304,6 +304,14 @@ export async function deleteLogFile(sourceId: string): Promise<void> {
   await axios.delete(`${apiPrefix}/delete`, { params: { sourceId } })
 }
 
+export async function clearLogFile(sourceId: string): Promise<void> {
+  if (!sourceId) {
+    return
+  }
+
+  await axios.delete(`${apiPrefix}/clear`, { params: { sourceId } })
+}
+
 export async function downloadLogFile(sourceId: string): Promise<Blob | null> {
   if (!sourceId) {
     return null

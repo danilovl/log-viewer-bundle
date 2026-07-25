@@ -52,6 +52,11 @@
                   <IconDownload :width="14" :height="14" />
                 </button>
               </span>
+              <span v-if="file.canDelete" :title="file.isDeletable ? t('clear') : t('noDeletePermission')">
+                <button class="clear-action" :disabled="!file.isDeletable" @click.stop="handleClear(file)">
+                  <IconFileX :width="14" :height="14" />
+                </button>
+              </span>
               <span v-if="file.canDelete" :title="file.isDeletable ? t('delete') : t('noDeletePermission')">
                 <button class="delete-action" :disabled="!file.isDeletable" @click.stop="handleDelete(file)">
                   <IconDelete :width="14" :height="14" />
@@ -78,6 +83,7 @@ import IconFolder from '@/components/icons/IconFolder.vue'
 import IconFile from '@/components/icons/IconFile.vue'
 import IconSettings from '@/components/icons/IconSettings.vue'
 import IconDelete from '@/components/icons/IconDelete.vue'
+import IconFileX from '@/components/icons/IconFileX.vue'
 import IconDownload from '@/components/icons/IconDownload.vue'
 import IconEye from '@/components/icons/IconEye.vue'
 
@@ -142,6 +148,11 @@ function toggleDropdown(fileId: string, event: Event): void {
 function handleDelete(file: TreeFile): void {
   store.activeFileDropdownId = null
   store.deleteFile(file.id, file.name)
+}
+
+function handleClear(file: TreeFile): void {
+  store.activeFileDropdownId = null
+  store.clearFile(file.id, file.name)
 }
 
 function handleDownload(file: TreeFile): void {

@@ -2171,6 +2171,7 @@ body {
 }
 
 .download-action,
+.clear-action,
 .delete-action,
 .view-action {
   background: none;
@@ -2188,6 +2189,7 @@ body {
 }
 
 .download-action:hover,
+.clear-action:hover,
 .view-action:hover {
   background: var(--bg-main);
   color: var(--text-main);
@@ -2202,10 +2204,12 @@ body {
 }
 
 .download-action:disabled,
+.clear-action:disabled,
 .delete-action:disabled,
 .view-action:disabled,
 .download-btn:disabled,
 .delete-btn:disabled,
+.clear-btn:disabled,
 .view-btn:disabled,
 .btn-download:disabled,
 .btn-delete:disabled,
@@ -2276,10 +2280,10 @@ body {
   border-color: var(--primary);
 }
 
-.btn-delete:hover {
+.btn-delete:hover,
+.btn-clear:hover {
   color: var(--danger);
   background: var(--level-error-bg);
-  border-color: var(--danger);
 }
 
 .log-stats-grid {
@@ -4144,7 +4148,8 @@ mark {
   color: var(--success);
 }
 
-.delete-btn:hover {
+.delete-btn:hover,
+.clear-btn:hover {
   color: var(--danger);
 }
 

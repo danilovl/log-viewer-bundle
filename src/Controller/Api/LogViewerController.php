@@ -3,6 +3,7 @@
 namespace Danilovl\LogViewerBundle\Controller\Api;
 
 use Danilovl\LogViewerBundle\Action\Api\{
+    ClearLogAction,
     DeleteLogAction,
     DownloadLogAction,
     GetConfigAction,
@@ -27,6 +28,7 @@ use Symfony\Component\HttpKernel\Attribute\{
     MapQueryString
 };
 use Symfony\Component\Routing\Attribute\Route;
+use RuntimeException;
 
 readonly class LogViewerController
 {
@@ -42,7 +44,8 @@ readonly class LogViewerController
         private DeleteLogAction $deleteLogAction,
         private DownloadLogAction $downloadLogAction,
         private GetFileContentAction $getFileContentAction,
-        private GlobalSearchAction $globalSearchAction
+        private GlobalSearchAction $globalSearchAction,
+        private ?ClearLogAction $clearLogAction = null
     ) {}
 
     #[Route(
@@ -159,6 +162,22 @@ readonly class LogViewerController
         string $sourceId
     ): JsonResponse {
         return $this->deleteLogAction->__invoke($sourceId);
+    }
+
+    #[Route(
+        path: '/clear',
+        name: 'danilovl_log_viewer_api_clear',
+        methods: [Request::METHOD_DELETE]
+    )]
+    public function clear(
+        #[MapQueryParameter]
+        string $sourceId
+    ): JsonResponse {
+        if ($this->clearLogAction === null) {
+            throw new RuntimeException('ClearLogAction service not found. Please clear the cache.');
+        }
+
+        return $this->clearLogAction->__invoke($sourceId);
     }
 
     #[Route(

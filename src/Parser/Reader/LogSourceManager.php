@@ -403,6 +403,27 @@ class LogSourceManager
         return true;
     }
 
+    public function clearFile(string $path): bool
+    {
+        $path = realpath($path);
+        if ($path === false || !FileActionHelper::canClear($path, $this->configurationProvider->sourceAllowDelete)) {
+            return false;
+        }
+
+        if (!$this->isWithinAllowedDirs($path)) {
+            return false;
+        }
+
+        $handle = @fopen($path, 'w');
+        if ($handle === false) {
+            return false;
+        }
+
+        fclose($handle);
+
+        return true;
+    }
+
     public function isWithinAllowedDirs(string $path): bool
     {
         $path = realpath($path);

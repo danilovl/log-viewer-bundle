@@ -9,6 +9,11 @@ final class FileActionHelper
         return $allowDelete && is_file($path) && is_writable($path);
     }
 
+    public static function canClear(string $path, bool $allowDelete): bool
+    {
+        return $allowDelete && is_file($path) && is_writable($path);
+    }
+
     public static function canDownload(string $path, bool $allowDownload): bool
     {
         return $allowDownload && is_file($path) && is_readable($path);
