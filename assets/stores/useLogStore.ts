@@ -260,7 +260,11 @@ export const useLogStore = defineStore('log', () => {
     isStructureLoaded.value = true
   }
 
-  const { deleteFile, clearFile, downloadFile } = useLogFiles(source, loadStructure)
+  const { deleteFile, clearFile, downloadFile } = useLogFiles(source, loadStructure, () => {
+    data.loadEntries(true)
+
+    return
+  })
 
   watch(
     () => {

@@ -3,7 +3,11 @@ import router from '@/router'
 import { deleteLogFile as apiDeleteLogFile, clearLogFile as apiClearLogFile, downloadLogFile } from '@/services/api'
 import { useModalStore } from '@/stores/useModalStore'
 
-export function useLogFiles(source: { id: string; path: string }, loadStructure: () => Promise<void>) {
+export function useLogFiles(
+  source: { id: string; path: string },
+  loadStructure: () => Promise<void>,
+  onClear?: () => void,
+) {
   const { t } = useI18n()
   const modalStore = useModalStore()
 
@@ -46,6 +50,10 @@ export function useLogFiles(source: { id: string; path: string }, loadStructure:
       await apiClearLogFile(id)
       await loadStructure()
       if (source.id === id) {
+        if (onClear) {
+          onClear()
+        }
+
         router.push({ name: 'logs', params: { sourceId: id } })
       }
     } catch (e: any) {
