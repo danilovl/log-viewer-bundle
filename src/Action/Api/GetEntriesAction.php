@@ -63,7 +63,7 @@ readonly class GetEntriesAction
             filePath: $sourceInfo->filePath,
             parserType: $sourceInfo->parserType,
             filters: $filters,
-            limit: $query->limit,
+            limit: $query->getSafeLimit(),
             cursor: $query->cursor,
             sortDir: $query->sortDir,
             offset: $query->offset,

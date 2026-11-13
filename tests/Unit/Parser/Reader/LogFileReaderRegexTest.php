@@ -9,7 +9,10 @@ use Danilovl\LogViewerBundle\Parser\{
 };
 use Danilovl\LogViewerBundle\Tests\LogPathTrait;
 use Danilovl\LogViewerBundle\Parser\Reader\LogFileReader;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Generator;
 
 final class LogFileReaderRegexTest extends TestCase
 {
@@ -56,5 +59,58 @@ final class LogFileReaderRegexTest extends TestCase
         $count = $this->reader->getCount($this->logPath, 'monolog', $filters);
 
         $this->assertSame(2, $count, 'Regex search should find 2 entries (ERROR and CRITICAL)');
+    }
+
+    #[DataProvider('invalidRegexDataProvider')]
+    public function testInvalidRegexThrowsBadRequest(string $search): void
+    {
+        $filters = LogViewerFilters::fromQueryParams(
+            level: null,
+            channel: null,
+            search: $search,
+            searchRegex: true
+        );
+
+        $this->expectException(BadRequestHttpException::class);
+        $this->expectExceptionMessage('Invalid search regex.');
+
+        $this->reader->getEntries($this->logPath, 'monolog', 10, null, $filters);
+    }
+
+    public function testInvalidRegexThrowsBadRequestForCount(): void
+    {
+        $filters = LogViewerFilters::fromQueryParams(
+            level: null,
+            channel: null,
+            search: '(unclosed',
+            searchRegex: true
+        );
+
+        $this->expectException(BadRequestHttpException::class);
+
+        $this->reader->getCount($this->logPath, 'monolog', $filters);
+    }
+
+    public function testRegexWithDelimiterCharacters(): void
+    {
+        $filters = LogViewerFilters::fromQueryParams(
+            level: null,
+            channel: null,
+            search: 'crit~?ical|/never/',
+            searchRegex: true
+        );
+
+        $entries = $this->reader->getEntries($this->logPath, 'monolog', 10, null, $filters);
+
+        $this->assertCount(1, $entries);
+        $this->assertSame('CRITICAL', $entries[0]->level);
+    }
+
+    public static function invalidRegexDataProvider(): Generator
+    {
+        yield 'unclosed group' => ['(unclosed'];
+        yield 'unclosed class' => ['[a-z'];
+        yield 'nothing to repeat' => ['*error'];
+        yield 'trailing backslash' => ['error\\'];
     }
 }

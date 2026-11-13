@@ -23,8 +23,13 @@ class GoLogArguments
         'json'
     ];
 
+    public const string ENV_PASSWORD = 'LOG_VIEWER_PASSWORD';
+
     /** @var string[] */
     private array $arguments;
+
+    /** @var array<string, string> */
+    private array $environment = [];
 
     public function __construct(
         string $binaryPath,
@@ -158,8 +163,7 @@ class GoLogArguments
         }
 
         if ($hostConfig->password !== null) {
-            $this->arguments[] = '--password';
-            $this->arguments[] = $hostConfig->password;
+            $this->environment[self::ENV_PASSWORD] = $hostConfig->password;
         }
 
         if ($hostConfig->sshKey !== null) {
@@ -176,5 +180,13 @@ class GoLogArguments
     public function toArray(): array
     {
         return $this->arguments;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function getEnvironment(): array
+    {
+        return $this->environment;
     }
 }

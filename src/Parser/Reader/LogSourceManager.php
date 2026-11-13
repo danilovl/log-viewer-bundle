@@ -170,10 +170,12 @@ class LogSourceManager
                 path: $rootDir,
             );
 
+            $rootDirPrefix = rtrim($rootDir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+
             foreach ($sources as $source) {
                 if ($source->host !== null ||
                     in_array($source->id, $addedSourceIds, true) ||
-                    !str_starts_with($source->path, $rootDir)
+                    !str_starts_with($source->path, $rootDirPrefix)
                 ) {
                     continue;
                 }
@@ -433,7 +435,12 @@ class LogSourceManager
 
         foreach ($this->configurationProvider->sourceDirs as $dir) {
             $realDir = realpath($dir);
-            if ($realDir !== false && str_starts_with($path, $realDir)) {
+            if ($realDir === false) {
+                continue;
+            }
+
+            $dirPrefix = rtrim($realDir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+            if (str_starts_with($path, $dirPrefix)) {
                 return true;
             }
         }

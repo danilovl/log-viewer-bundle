@@ -56,7 +56,10 @@ readonly class GoLogClient
             ->addParser($parserType)
             ->addFilters($filters);
 
-        $process = new Process($arguments->toArray());
+        $command = $arguments->toArray();
+        $environment = $arguments->getEnvironment();
+
+        $process = new Process($command, env: $environment);
         $process->setTimeout(30);
         $process->run();
 
@@ -104,7 +107,10 @@ readonly class GoLogClient
             ->addParser($parserType)
             ->addFilters($filters);
 
-        $process = new Process($arguments->toArray());
+        $command = $arguments->toArray();
+        $environment = $arguments->getEnvironment();
+
+        $process = new Process($command, env: $environment);
         $process->setTimeout(60);
         $process->run();
 
@@ -170,7 +176,10 @@ readonly class GoLogClient
             ->addParser($parserType)
             ->addFilters($filters);
 
-        $process = new Process($arguments->toArray());
+        $command = $arguments->toArray();
+        $environment = $arguments->getEnvironment();
+
+        $process = new Process($command, env: $environment);
         $process->setTimeout(60);
         $process->run();
 
@@ -236,7 +245,10 @@ readonly class GoLogClient
                 sortDir: 'asc'
             );
 
-        $process = new Process($arguments->toArray());
+        $command = $arguments->toArray();
+        $environment = $arguments->getEnvironment();
+
+        $process = new Process($command, env: $environment);
         $process->setTimeout(30);
         $process->run();
 
@@ -272,7 +284,10 @@ readonly class GoLogClient
             ->addMode('identify')
             ->addHost($hostName);
 
-        $process = new Process($arguments->toArray());
+        $command = $arguments->toArray();
+        $environment = $arguments->getEnvironment();
+
+        $process = new Process($command, env: $environment);
         $process->setTimeout(30);
         $process->run();
 

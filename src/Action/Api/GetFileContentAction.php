@@ -6,6 +6,7 @@ use Danilovl\LogViewerBundle\Parser\Reader\{
     LogSourceManager,
     LogViewer
 };
+use Danilovl\LogViewerBundle\DTO\LogViewerQuery;
 use Danilovl\LogViewerBundle\Util\FileActionHelper;
 use Symfony\Component\HttpFoundation\{
     JsonResponse,
@@ -54,7 +55,7 @@ readonly class GetFileContentAction
             filePath: $source->path,
             parserType: $source->parserType,
             page: $page,
-            limit: $limit,
+            limit: max(1, min($limit, LogViewerQuery::MAX_LIMIT)),
             line: $line,
             host: $source->host
         );

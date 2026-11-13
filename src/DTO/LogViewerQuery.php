@@ -4,6 +4,8 @@ namespace Danilovl\LogViewerBundle\DTO;
 
 class LogViewerQuery
 {
+    public const int MAX_LIMIT = 1_000;
+
     public function __construct(
         public string $sourceId,
         public ?string $file = null,
@@ -19,4 +21,9 @@ class LogViewerQuery
         public int $offset = 0,
         public string $sortDir = 'desc'
     ) {}
+
+    public function getSafeLimit(): int
+    {
+        return max(1, min($this->limit, self::MAX_LIMIT));
+    }
 }

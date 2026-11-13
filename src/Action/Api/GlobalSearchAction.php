@@ -53,7 +53,7 @@ readonly class GlobalSearchAction
                 filePath: $sourceInfo->filePath,
                 parserType: $sourceInfo->parserType,
                 filters: $filters,
-                limit: $query->limit,
+                limit: $query->getSafeLimit(),
                 cursor: $query->cursor,
                 sortDir: $query->sortDir,
                 offset: $query->offset,
@@ -76,7 +76,7 @@ readonly class GlobalSearchAction
             return $query->sortDir === 'desc' ? $timeB <=> $timeA : $timeA <=> $timeB;
         });
 
-        $pagedEntries = array_slice($allEntries, 0, $query->limit);
+        $pagedEntries = array_slice($allEntries, 0, $query->getSafeLimit());
 
         return new JsonResponse([
             'entries' => $pagedEntries,

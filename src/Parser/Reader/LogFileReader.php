@@ -12,6 +12,7 @@ use Danilovl\LogViewerBundle\DTO\{
 use Danilovl\LogViewerBundle\Parser\CompositeLogParser;
 use RuntimeException;
 use SplFileObject;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Throwable;
 
 class LogFileReader
@@ -393,8 +394,14 @@ class LogFileReader
     private function getSearchRegexPattern(LogViewerFilters $filters): string
     {
         $flags = $filters->searchCaseSensitive ? '' : 'i';
+        $search = str_replace('~', '\~', (string) $filters->search);
+        $pattern = '~' . $search . '~' . $flags;
 
-        return '/' . str_replace('/', '\/', (string) $filters->search) . '/' . $flags;
+        if (@preg_match($pattern, '') === false) {
+            throw new BadRequestHttpException('Invalid search regex.');
+        }
+
+        return $pattern;
     }
 
     private function collectStats(LogViewerStats $stats, LogEntry $entry, ?string $timelineFormat = null): void

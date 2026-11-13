@@ -324,6 +324,106 @@ final class LogSourceManagerTest extends TestCase
         }
     }
 
+    public function testIsWithinAllowedDirsRejectsSiblingDirWithSamePrefix(): void
+    {
+        $baseDir = sys_get_temp_dir() . '/log_prefix_test_' . uniqid();
+        $allowedDir = $baseDir . '/nginx';
+        $siblingDir = $baseDir . '/nginx-old';
+        mkdir($allowedDir, recursive: true);
+        mkdir($siblingDir, recursive: true);
+
+        $allowedFile = $allowedDir . '/access.log';
+        $siblingFile = $siblingDir . '/access.log';
+        file_put_contents($allowedFile, 'data');
+        file_put_contents($siblingFile, 'data');
+
+        try {
+            $configProvider = $this->createConfigurationProvider(sourceDirs: [$allowedDir]);
+            $manager = $this->createManager($configProvider);
+
+            $this->assertTrue($manager->isWithinAllowedDirs($allowedFile));
+            $this->assertFalse($manager->isWithinAllowedDirs($siblingFile));
+            $traversalFile = $allowedDir . '/../nginx-old/access.log';
+            $missingFile = $allowedDir . '/missing.log';
+
+            $this->assertFalse($manager->isWithinAllowedDirs($traversalFile));
+            $this->assertFalse($manager->isWithinAllowedDirs($missingFile));
+        } finally {
+            unlink($allowedFile);
+            unlink($siblingFile);
+            rmdir($allowedDir);
+            rmdir($siblingDir);
+            rmdir($baseDir);
+        }
+    }
+
+    public function testIsWithinAllowedDirsWithTrailingSlashInConfig(): void
+    {
+        $baseDir = sys_get_temp_dir() . '/log_slash_test_' . uniqid();
+        mkdir($baseDir);
+        $file = $baseDir . '/app.log';
+        file_put_contents($file, 'data');
+
+        try {
+            $configProvider = $this->createConfigurationProvider(sourceDirs: [$baseDir . '/']);
+            $manager = $this->createManager($configProvider);
+
+            $this->assertTrue($manager->isWithinAllowedDirs($file));
+        } finally {
+            unlink($file);
+            rmdir($baseDir);
+        }
+    }
+
+    public function testIsWithinAllowedDirsMatchesExactSourceFile(): void
+    {
+        $logPath = $this->getLogPath('monolog.log');
+        $configProvider = $this->createConfigurationProvider(sourceFiles: [$logPath]);
+        $manager = $this->createManager($configProvider);
+
+        $logDir = dirname($logPath);
+
+        $this->assertTrue($manager->isWithinAllowedDirs($logPath));
+        $this->assertFalse($manager->isWithinAllowedDirs($logDir));
+    }
+
+    public function testGetFolderStructureDoesNotIncludeSiblingDirWithSamePrefix(): void
+    {
+        $baseDir = sys_get_temp_dir() . '/log_tree_test_' . uniqid();
+        $allowedDir = $baseDir . '/nginx';
+        $siblingDir = $baseDir . '/nginx-old';
+        mkdir($allowedDir, recursive: true);
+        mkdir($siblingDir, recursive: true);
+
+        $allowedFile = $allowedDir . '/access.log';
+        $siblingFile = $siblingDir . '/old.log';
+        file_put_contents($allowedFile, 'data');
+        file_put_contents($siblingFile, 'data');
+
+        try {
+            $configProvider = $this->createConfigurationProvider(sourceDirs: [$allowedDir, $siblingDir]);
+            $manager = $this->createManager($configProvider);
+
+            $structure = $manager->getFolderStructure();
+            $this->assertCount(2, $structure);
+
+            $filesByRoot = [];
+            foreach ($structure as $node) {
+                $nodeFiles = $node->getAllFiles();
+                $filesByRoot[$node->name] = array_map(static fn ($source): string => $source->path, $nodeFiles);
+            }
+
+            $this->assertSame([$allowedFile], $filesByRoot['nginx']);
+            $this->assertSame([$siblingFile], $filesByRoot['nginx-old']);
+        } finally {
+            unlink($allowedFile);
+            unlink($siblingFile);
+            rmdir($allowedDir);
+            rmdir($siblingDir);
+            rmdir($baseDir);
+        }
+    }
+
     public static function sourceFileDataProvider(): Generator
     {
         yield 'empty_file' => [
@@ -365,6 +465,19 @@ final class LogSourceManagerTest extends TestCase
             null,
             null
         ];
+    }
+
+    private function createManager(ConfigurationProvider $configProvider): LogSourceManager
+    {
+        $eventDispatcher = $this->createMock(EventDispatcherInterface::class);
+        $cache = $this->createMock(TagAwareCacheInterface::class);
+
+        return new LogSourceManager(
+            configurationProvider: $configProvider,
+            compositeLogParser: $this->compositeLogParser,
+            eventDispatcher: $eventDispatcher,
+            cache: $cache
+        );
     }
 
     /**

@@ -47,7 +47,9 @@ class RemoteLogReader
 
             $handle = @fopen($url, 'rb', false, $context);
             if ($handle === false) {
-                throw new RuntimeException("Could not open remote URL: $url");
+                $message = sprintf('Could not open remote URL for host "%s" and path "%s".', $hostName, $path);
+
+                throw new RuntimeException($message);
             }
 
             return $handle;
@@ -140,9 +142,9 @@ class RemoteLogReader
 
         $url = "$protocol://";
         if ($user !== null && $password !== null) {
-            $url .= "$user:$password@";
+            $url .= rawurlencode($user) . ':' . rawurlencode($password) . '@';
         } elseif ($user !== null) {
-            $url .= "$user@";
+            $url .= rawurlencode($user) . '@';
         }
 
         $url .= $host;
