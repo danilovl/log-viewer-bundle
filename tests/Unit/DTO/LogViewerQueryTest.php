@@ -9,7 +9,7 @@ use Generator;
 
 final class LogViewerQueryTest extends TestCase
 {
-    #[DataProvider('limitDataProvider')]
+    #[DataProvider('provideGetSafeLimitCases')]
     public function testGetSafeLimit(int $limit, int $expected): void
     {
         $query = new LogViewerQuery(sourceId: 'source', limit: $limit);
@@ -17,7 +17,7 @@ final class LogViewerQueryTest extends TestCase
         $this->assertSame($expected, $query->getSafeLimit());
     }
 
-    public static function limitDataProvider(): Generator
+    public static function provideGetSafeLimitCases(): Generator
     {
         yield 'default' => [50, 50];
         yield 'max' => [LogViewerQuery::MAX_LIMIT, LogViewerQuery::MAX_LIMIT];

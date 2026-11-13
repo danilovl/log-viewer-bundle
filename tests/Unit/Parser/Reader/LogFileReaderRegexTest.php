@@ -61,7 +61,7 @@ final class LogFileReaderRegexTest extends TestCase
         $this->assertSame(2, $count, 'Regex search should find 2 entries (ERROR and CRITICAL)');
     }
 
-    #[DataProvider('invalidRegexDataProvider')]
+    #[DataProvider('provideInvalidRegexThrowsBadRequestCases')]
     public function testInvalidRegexThrowsBadRequest(string $search): void
     {
         $filters = LogViewerFilters::fromQueryParams(
@@ -106,7 +106,7 @@ final class LogFileReaderRegexTest extends TestCase
         $this->assertSame('CRITICAL', $entries[0]->level);
     }
 
-    public static function invalidRegexDataProvider(): Generator
+    public static function provideInvalidRegexThrowsBadRequestCases(): Generator
     {
         yield 'unclosed group' => ['(unclosed'];
         yield 'unclosed class' => ['[a-z'];

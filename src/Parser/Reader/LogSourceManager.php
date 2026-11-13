@@ -170,7 +170,7 @@ class LogSourceManager
                 path: $rootDir,
             );
 
-            $rootDirPrefix = rtrim($rootDir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+            $rootDirPrefix = mb_rtrim($rootDir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
 
             foreach ($sources as $source) {
                 if ($source->host !== null ||
@@ -439,7 +439,7 @@ class LogSourceManager
                 continue;
             }
 
-            $dirPrefix = rtrim($realDir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+            $dirPrefix = mb_rtrim($realDir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
             if (str_starts_with($path, $dirPrefix)) {
                 return true;
             }
