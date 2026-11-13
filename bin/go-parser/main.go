@@ -31,7 +31,7 @@ func main() {
 	host := flag.String("host", "", "Remote host")
 	port := flag.Int("port", 0, "Remote port")
 	user := flag.String("user", "", "Remote user")
-	password := flag.String("password", "", "Remote password")
+	password := flag.String("password", "", "Remote password (deprecated, use LOG_VIEWER_PASSWORD env variable)")
 	sshKey := flag.String("ssh-key", "", "Remote ssh key")
 	hostType := flag.String("host-type", "", "Remote host type (ssh, sftp, http, https)")
 
@@ -76,12 +76,17 @@ func main() {
 		}
 	}
 
+	remotePassword := os.Getenv("LOG_VIEWER_PASSWORD")
+	if remotePassword == "" {
+		remotePassword = *password
+	}
+
 	cfg := RemoteConfig{
 		FilePath: *filePath,
 		Host:     *host,
 		Port:     *port,
 		User:     *user,
-		Password: *password,
+		Password: remotePassword,
 		SSHKey:   *sshKey,
 		Type:     *hostType,
 	}
