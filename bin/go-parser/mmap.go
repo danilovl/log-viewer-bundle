@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"os"
+	"runtime/debug"
 	"syscall"
 	"unsafe"
 )
@@ -44,4 +46,23 @@ func unsafeString(b []byte) string {
 		return ""
 	}
 	return unsafe.String(unsafe.SliceData(b), len(b))
+}
+
+// guardMmap turns a SIGBUS on mmap'ed memory (file truncated while being read,
+// e.g. logrotate copytruncate or "clear file") into a clean error instead of a
+// runtime crash. Call as the first statement of every goroutine touching mmap data:
+//
+//	defer guardMmap()()
+func guardMmap() func() {
+	debug.SetPanicOnFault(true)
+	return func() {
+		if r := recover(); r != nil {
+			// Memory faults raised by SetPanicOnFault implement Addr().
+			if _, ok := r.(interface{ Addr() uintptr }); ok {
+				fmt.Fprintln(os.Stderr, "Error: file was truncated or modified while reading")
+				os.Exit(1)
+			}
+			panic(r)
+		}
+	}
 }

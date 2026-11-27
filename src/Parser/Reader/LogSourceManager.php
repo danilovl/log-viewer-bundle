@@ -79,7 +79,7 @@ class LogSourceManager
 
         foreach ($files as $path) {
             $isExists = $fs->exists($path);
-            $isLogFile = str_ends_with(mb_strtolower($path), '.log');
+            $isLogFile = str_ends_with(strtolower($path), '.log');
             $isIgnored = $this->isIgnored($path, $ignore);
 
             if ($isExists && $isLogFile && !$isIgnored) {
@@ -170,7 +170,7 @@ class LogSourceManager
                 path: $rootDir,
             );
 
-            $rootDirPrefix = mb_rtrim($rootDir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+            $rootDirPrefix = rtrim($rootDir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
 
             foreach ($sources as $source) {
                 if ($source->host !== null ||
@@ -181,7 +181,7 @@ class LogSourceManager
                 }
 
                 $relativePath = $fs->makePathRelative(dirname($source->path), $rootDir);
-                $trimmedPath = mb_trim($relativePath, '/.');
+                $trimmedPath = trim($relativePath, '/.');
                 $parts = $trimmedPath === '' ? [] : explode('/', $trimmedPath);
 
                 $current = $rootNode;
@@ -256,7 +256,7 @@ class LogSourceManager
     {
         $hostId = $host ?? 'local';
         $hash = sha1($hostId . $path);
-        $id = mb_substr($hash, 0, 12);
+        $id = substr($hash, 0, 12);
         $name = basename($path);
         $maxFileSize = $this->configurationProvider->sourceMaxFileSize;
 
@@ -357,7 +357,7 @@ class LogSourceManager
 
         $line = null;
         while (($currentLine = fgets($handle)) !== false) {
-            $trimmedLine = mb_trim($currentLine);
+            $trimmedLine = trim($currentLine);
             if ($trimmedLine !== '') {
                 $line = $trimmedLine;
 
@@ -439,7 +439,7 @@ class LogSourceManager
                 continue;
             }
 
-            $dirPrefix = mb_rtrim($realDir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+            $dirPrefix = rtrim($realDir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
             if (str_starts_with($path, $dirPrefix)) {
                 return true;
             }

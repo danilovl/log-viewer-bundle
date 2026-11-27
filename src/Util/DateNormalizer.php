@@ -21,11 +21,25 @@ final class DateNormalizer
         'Y-m-d\TH:i:s\Z',     // ISO UTC
     ];
 
+    /**
+     * ISO-like timestamps: YYYY-MM-DD[T ]HH:MM:SS[.fraction][Z|±HH[:]MM].
+     * Their wall-clock part is exactly what DateTimeImmutable::format('Y-m-d H:i:s') returns.
+     */
+    private const string ISO_PATTERN = '~^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2}):(\d{2})(?:\.\d{1,9}|,\d{1,6})?(?:Z|[+-]\d{2}:?\d{2})?$~';
+
     public static function normalize(string $timestamp): string
     {
-        $timestamp = mb_trim($timestamp);
+        $timestamp = trim($timestamp, " \f\n\r\t\v\0");
         if ($timestamp === '') {
             return '';
+        }
+
+        // Fast path: avoids constructing DateTimeImmutable for every log line.
+        if (preg_match(self::ISO_PATTERN, $timestamp, $m) === 1 &&
+            (int) $m[4] < 24 && (int) $m[5] < 60 && (int) $m[6] < 60 &&
+            checkdate((int) $m[2], (int) $m[3], (int) $m[1])
+        ) {
+            return substr($timestamp, 0, 10) . ' ' . substr($timestamp, 11, 8);
         }
 
         try {
@@ -56,16 +70,16 @@ final class DateNormalizer
     public static function getTimelineKey(string $timestamp, string $format): string
     {
         $normalizedTs = self::normalize($timestamp);
-        if ($normalizedTs === '' || str_starts_with($normalizedTs, '0000') || mb_strlen($normalizedTs) < 10) {
+        if ($normalizedTs === '' || str_starts_with($normalizedTs, '0000') || strlen($normalizedTs) < 10) {
             return $timestamp;
         }
 
         return match ($format) {
-            'minute' => mb_substr($normalizedTs, 0, 16) . ':00',
-            'day' => mb_substr($normalizedTs, 0, 10) . ' 00:00:00',
-            'month' => mb_substr($normalizedTs, 0, 7) . '-01 00:00:00',
-            'year' => mb_substr($normalizedTs, 0, 4) . '-01-01 00:00:00',
-            default => mb_substr($normalizedTs, 0, 13) . ':00:00', // hour
+            'minute' => substr($normalizedTs, 0, 16) . ':00',
+            'day' => substr($normalizedTs, 0, 10) . ' 00:00:00',
+            'month' => substr($normalizedTs, 0, 7) . '-01 00:00:00',
+            'year' => substr($normalizedTs, 0, 4) . '-01-01 00:00:00',
+            default => substr($normalizedTs, 0, 13) . ':00:00', // hour
         };
     }
 

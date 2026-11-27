@@ -300,7 +300,9 @@ class LogViewer
             ];
         }
 
-        $lines = array_values($this->fileContentReader->readLines($filePath, $page, $limit, $line));
+        // Counting lines reads the whole file: do it once per request.
+        $totalLines = $this->fileContentReader->getTotalLines($filePath);
+        $lines = array_values($this->fileContentReader->readLines($filePath, $page, $limit, $line, $totalLines));
         if ($line !== null) {
             $page = (int) floor($line / $limit) + 1;
         }
@@ -309,7 +311,7 @@ class LogViewer
             'lines' => $lines,
             'page' => $page,
             'limit' => $limit,
-            'totalLines' => $this->fileContentReader->getTotalLines($filePath)
+            'totalLines' => $totalLines
         ];
     }
 

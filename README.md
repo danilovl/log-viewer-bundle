@@ -5,7 +5,7 @@
 
 # LogViewerBundle
 
-This Symfony bundle provides a user-friendly interface and API for viewing application logs (Monolog).
+This Symfony bundle provides a user-friendly interface and API for viewing application logs (Monolog). 
 It supports log reading through standard PHP methods as well as a high-performance Go-based parser.
 
 ## Features
@@ -23,7 +23,7 @@ It supports log reading through standard PHP methods as well as a high-performan
 - **Log Viewing**: Advanced filtering, search (including Regex and Case-sensitivity), and pagination for historical logs.
 - **Live Log View**: Real-time log streaming with automatic updates and level-based filtering.
 - **Multiple Parsers**: Support for Monolog, Nginx, Apache, PHP, Syslog, and more.
-- **High Performance**: Optional Go-based parser for extremely fast processing of large log files.
+- **High Performance**: Optional Go-based parser for extremely fast processing of large log files (see [Performance](#performance-go-vs-php)).
 - **Log Statistics**: Detailed charts and metrics (by level, channel, timeline) with interactive range selection powered by Google Charts.
 - **View in Reader**: Open any log entry directly in the File Reader from the Dashboard, Logs, Live, or Global Search views to see its surrounding context.
 - **Auto-Refresh**: Configurable real-time updates for dashboard and individual log views.
@@ -351,6 +351,43 @@ Note: For email notifications to work through the Notifier, you might also need 
 
 Refer to the official [Symfony Notifier documentation](https://symfony.com/doc/current/notifier.html) for detailed transport configuration (DSN) for each provider.
 
+## Performance (Go vs PHP)
+
+Processing time of a single request for Monolog files of different sizes
+(every 50th entry contains a 20-line stack trace).
+
+| Operation | 200 MB<br>Go | 200 MB<br>PHP | 2 GB<br>Go | 2 GB<br>PHP | 10 GB<br>Go | 10 GB<br>PHP |
+|---|---|---|---|---|---|---|
+| First page (50 newest entries) | 0.01 s | 0.05 s | 0.13 s | 0.53 s | 5.1 s | 9.7 s |
+| Search with no matches (full scan) | 0.04 s | 0.36 s | 0.29 s | 6.6 s | 4.1 s | **67 s** |
+| Date filter (`date-from`, 50 entries) | 0.01 s | 0.03 s | 0.05 s | 0.21 s | 1.6 s | 1.0 s |
+| Count with level filter | 0.05 s | 1.7 s | 0.79 s | 20 s | 7.5 s | **131 s** |
+| Statistics (levels, channels, timeline) | 0.04 s | 2.1 s | 0.41 s | 23 s | 7.2 s | **244 s** |
+| File Reader (page in the middle of the file) | 0.02 s | 0.07 s | 0.10 s | 0.52 s | 3.7 s | 6.5 s |
+
+Test machine: Intel Core Ultra 7 255H (5 vCPU in WSL2), 9.7 GB RAM, PHP 8.5 CLI without OPcache/JIT.
+The 200 MB and 2 GB files were in the OS page cache; the 10 GB file does not fit into RAM, so it is read
+from disk (~1.2 GB/s sequential), which is the lower bound for operations that have to scan the whole file.
+PHP times were measured with `LogFileReader` directly (no HTTP overhead).
+
+**How to read the table:**
+
+- **Go** uses all CPU cores, memory-mapped files and a zero-copy scanner; full-file operations run at
+  roughly 2.5–5 GB/s from the page cache and are limited by the disk speed for files larger than RAM.
+- **PHP** is single-threaded: full-file operations (statistics, counts, searches without matches) take
+  about **10–25 s per GB**. Operations limited to one page or a date range stay fast for any file size.
+- **Date filters and cursors** use binary search over the file in both engines, so their time barely
+  depends on the file size.
+- **Statistics are cached** (`cache.statistic_enabled`, `cache.statistic_interval`), so the full
+  scan is not repeated on every dashboard refresh.
+- **Timeouts:** Go requests are limited to 30 s (entries, file content) and 60 s (statistics, counts);
+  PHP requests are limited by `max_execution_time`.
+- **Gzip files** (`.gz`) are processed by Go as a stream with constant memory usage; time grows linearly
+  with the uncompressed size.
+
+**Recommendation:** enable the Go parser (`parser.go_enabled: true`) for log files larger than ~100 MB.
+Without it, full scans of multi-gigabyte files will exceed typical PHP time limits.
+
 ## Built-in Parsers
 
 The following parsers are available by default:
@@ -533,7 +570,7 @@ The bundle provides several events that allow you to customize its behavior with
 Dispatched when collecting data for both folder structure and flat file list.
 - **Event Class**: `Danilovl\LogViewerBundle\Event\LogViewerDataEvent`
 - **Properties**:
-    - `structure` (`list<LogViewerFolderStructure>`): The hierarchical structure of log sources.
+  - `structure` (`list<LogViewerFolderStructure>`): The hierarchical structure of log sources.
 - **Use case**: Filter out specific folders or files from the list or modify their properties (like `canDelete`, `canDownload`) globally for the entire application. Modifying the `structure` property directly affects what is shown on the dashboard and sidebar.
 
 ### 2. LogViewerEntriesEvent
@@ -543,9 +580,9 @@ Dispatched after fetching log entries for a specific file, but before they are s
 
 ### 3. LogViewerDownloadEvent & LogViewerDeleteEvent
 Dispatched before downloading or deleting a log file.
-- **Event Classes**:
-    - `Danilovl\LogViewerBundle\Event\LogViewerDownloadEvent`
-    - `Danilovl\LogViewerBundle\Event\LogViewerDeleteEvent`
+- **Event Classes**: 
+  - `Danilovl\LogViewerBundle\Event\LogViewerDownloadEvent`
+  - `Danilovl\LogViewerBundle\Event\LogViewerDeleteEvent`
 - **Use case**: Stop the propagation of the event to block the action based on custom security rules.
 
 Example of an Event Subscriber:

@@ -27,10 +27,11 @@ High-performance Go tool for parsing, searching, and collecting statistics from 
   - [parser_php_error.go](#parser_php_errorgo)
   - [logs.go](#logsgo)
   - [stats.go](#statsgo)
+  - [scan.go](#scango)
+  - [filters.go](#filtersgo)
   - [mmap.go](#mmapgo)
   - [reader.go](#readergo)
   - [gz.go](#gzgo)
-  - [perf_test.go](#perf_testgo)
 - [Gzip Support](#gzip-support)
 - [Supported Log Formats](#supported-log-formats)
 - [Parser Selection](#parser-selection)
@@ -147,14 +148,17 @@ main.go
   |
   +-- parser_interface.go        LogParser interface + registry + auto-detection
   |
-  +-- gz.go                      Gzip support: isGzipFile / readGzipFull / stripGzExt
+  +-- gz.go                      Gzip support: isGzipFile / newGzipReader (streaming) / stripGzExt
   |
-  +-- logs.go                    runLogs: paginated log retrieval
-  |     |-- mmap.go              Mmap / Munmap / MadviseSequential / unsafeString
-  |     +-- reader.go            forwardLineReader / reverseLineReader (fallback)
+  +-- scan.go                    Entry scanning: zero-copy mmap scanner, stream joiner, line counting
+  +-- filters.go                 entryFilter (shared filters), binary search by time (searchRange)
   |
-  +-- stats.go                   runStatsDashboard / runStatsLog: parallel stats
-  |     +-- mmap.go
+  +-- logs.go                    runLogs: paginated log retrieval (parallel segments, early stop)
+  |     +-- mmap.go              Mmap / Munmap / MadviseSequential / unsafeString
+  |
+  +-- stats.go                   runStatsDashboard / runStatsFilter / runCount: parallel aggregation
+  |
+  +-- reader.go                  runFileContent: raw lines page (file_content mode)
   |
   +-- parser.go                  LogEntry, UniversalParser, shared utilities
         |
@@ -170,7 +174,6 @@ main.go
         +-- parser_json.go              JSONLogParser
         +-- parser_php_error.go         PhpErrorParser
 
-perf_test.go                     Benchmarks
 ```
 
 ---
@@ -179,7 +182,7 @@ perf_test.go                     Benchmarks
 
 ### main.go
 
-Entry point. Parses CLI flags, resolves which parser to use (explicit `--parser`, `--pattern`, or auto-detect), then dispatches to `runStatsDashboard`, `runStatsLog`, or `runLogs`.
+Entry point. Parses CLI flags, resolves which parser to use (explicit `--parser`, `--pattern`, or auto-detect), then dispatches to `runStatsDashboard`, `runStatsFilter`, `runCount`, `runFileContent` or `runLogs`.
 
 **Key functions:**
 - `main()` — flag parsing, parser resolution, mode dispatch
@@ -469,62 +472,57 @@ PHP error log format parser.
 
 ---
 
+### scan.go
+
+| Function               | Description                                                              |
+|------------------------|--------------------------------------------------------------------------|
+| `scanEntries`          | Zero-copy entry iteration over mmap data (multi-line entries are sub-slices, no copying) |
+| `streamEntries`        | Entry assembly from a stream (gzip/remote), amortised O(n) joining       |
+| `lineReader`           | Line reader that never fails on long lines (truncates at 10 MB)          |
+| `findChunkBoundaries`  | Splits a byte range into N chunks aligned at entry starts                |
+| `entryStartAtOrAfter`  | First entry start at or after an offset                                  |
+| `countLines`           | Parallel newline count                                                   |
+| `lineStartOffset`      | Byte offset of line N (block counting)                                   |
+
+Entries larger than 10 MB are truncated at a line boundary before parsing (line numbers stay exact).
+
+---
+
+### filters.go
+
+| Function / type        | Description                                                              |
+|------------------------|--------------------------------------------------------------------------|
+| `entryFilter`          | All filters (date, level(s), channel, search) shared by every mode       |
+| `prefilter`            | Raw-byte checks; enabled only when the value appears literally in the line (`literalFields`, `rawSearchPrefilterSafe`) |
+| `match`                | Full filter chain; context/SQL is parsed only when a search is set       |
+| `lowerBound`           | Binary search of the first entry with time >= target                     |
+| `searchRange`          | Narrows the scan range by date-from / date-to / cursor (1 min tolerance for out-of-order entries) |
+
+Date filters compare wall-clock time in the entry's own timezone (seconds precision); the cursor compares absolute instants.
+
+---
+
 ### logs.go
 
 Implements `runLogs` — the main log retrieval mode.
 
-**Key functions:**
-
-| Function              | Description                                                      |
-|-----------------------|------------------------------------------------------------------|
-| `runLogs`             | Main entry: opens file, applies filters/cursor/pagination, outputs JSON |
-| `binarySearchMmap`    | O(log n) binary search for cursor-based pagination on mmap data  |
-| `findEntryAfter`      | Scans forward to find next entry boundary                        |
-| `quickTimestamp`       | Heuristic timestamp extraction (monolog/nginx/syslog)            |
-| `emitMmapLinesAsc`    | Forward iteration over mmap data, assembles multiline entries    |
-| `emitMmapLinesDesc`   | Reverse iteration over mmap data, assembles multiline entries    |
-
 **Processing pipeline:**
-1. Open file: if `.gz` — decompress fully into memory via `readGzipFull`; otherwise try mmap (fallback to `reader.go`)
-2. If cursor set, binary search to narrow scan range
-3. Iterate entries (asc or desc)
-4. Apply byte-level pre-filters (level, channel, search) — fast rejection
-5. Full parse via `parser.Parse(line, filename, true, needTime)`
-6. Apply field-level filters (exact level/channel match, search in message/SQL)
-7. Apply cursor time comparison
-8. Skip offset entries, collect up to limit
-9. Encode each entry as JSON line to buffered stdout
+1. mmap the file (local, non-gzip); otherwise stream it (gzip / remote)
+2. `searchRange` narrows the byte range by date filters / cursor (binary search)
+3. The range is split into entry-aligned segments growing from 256 KB to 64 MB, starting at the end (desc) or the beginning (asc)
+4. Workers scan segments in parallel and keep up to `offset+limit` matches per segment; the coordinator stops all workers once enough matches are collected
+5. Only the returned page is fully parsed (context JSON) and line numbers are computed from byte offsets
+6. Stream mode: forward pass, desc keeps a ring buffer of the last `offset+limit` matches (memory O(page))
 
 ---
 
 ### stats.go
 
-Implements `runStatsDashboard` and `runStatsLog` — parallel statistics collection.
+Implements `runStatsDashboard`, `runStatsFilter` and `runCount` on top of one `aggregate` function.
 
-**Key functions:**
+**mmap path:** `searchRange` (date filters) → `findChunkBoundaries` (`runtime.NumCPU()` chunks) → each goroutine runs `scanEntries` + `entryFilter.match` into local maps (timeline keyed by integer hour, no allocation) → merge under mutex.
 
-| Function               | Description                                                    |
-|------------------------|----------------------------------------------------------------|
-| `runStatsDashboard`    | Full-file stats, no filters, data-parallel                     |
-| `runStatsLog`          | Filtered stats with level/channel/search pre-filters           |
-| `findChunkBoundaries`  | Splits mmap data into N chunks aligned at entry boundaries     |
-| `scanChunkEntries`     | Iterates entries in a mmap chunk                               |
-| `processMmap`          | Entry assembly from mmap data (for channel-based fallback)     |
-| `processScanner`       | Entry assembly from bufio.Scanner (non-mmap fallback)          |
-| `mergeLocalStats`      | Thread-safe merge of per-goroutine local stats                 |
-
-**Processing pipeline (mmap / gzip path):**
-1. If `.gz` — decompress fully into memory; otherwise mmap the file. Split data into `runtime.NumCPU()` chunks at entry boundaries
-2. Each goroutine scans its chunk independently
-3. Try `parser.ExtractStatsFields` (fast path, no allocation)
-4. Fallback to `parser.Parse` if fast path fails
-5. Accumulate into per-goroutine local maps
-6. Merge all local maps into shared `Stats` under mutex
-
-**Processing pipeline (scanner fallback):**
-1. Producer goroutine reads lines, assembles entries, sends batches via channel
-2. N worker goroutines consume batches, same fast-path/fallback logic
-3. Merge into shared `Stats`
+**Stream path (gzip / remote):** producer `streamEntries` sends batches to N workers via channel; memory is O(batch), the file is never fully loaded.
 
 ---
 
@@ -543,14 +541,7 @@ Low-level OS primitives for memory-mapped I/O.
 
 ### reader.go
 
-File-based line readers used as fallback when mmap is unavailable.
-
-| Function             | Description                                          |
-|----------------------|------------------------------------------------------|
-| `forwardLineReader`  | Reads lines sequentially via `bufio.Scanner` (10 MB buffer) |
-| `reverseLineReader`  | Reads lines in reverse using 64 KB chunk-based seeking |
-
-Both accept a `callback func([]byte) bool` — return `false` to stop early.
+`runFileContent` (`file_content` mode). mmap: parallel line count + direct jump to the page (single pass). gzip / remote: one streaming pass.
 
 ---
 
@@ -561,29 +552,14 @@ Transparent gzip decompression support for `.gz` log files.
 | Function       | Description                                                    |
 |----------------|----------------------------------------------------------------|
 | `isGzipFile`   | Returns true if file path ends with `.gz`                      |
-| `readGzipFull` | Decompresses entire `.gz` file into memory as `[]byte`         |
+| `newGzipReader`| Streaming gzip reader (the file is never fully decompressed into memory) |
 | `stripGzExt`   | Removes `.gz` extension from filename (for display in output)  |
 
-When a `.gz` file is passed via `--file`, the tool decompresses it fully into memory and uses the same mmap-style code paths (binary search, chunk-parallel stats, forward/reverse iteration). This avoids separate code paths for compressed files at the cost of higher memory usage.
+`.gz` files are processed as a stream: stats/count use the batch pipeline, `logs` uses a forward pass (desc keeps a ring buffer of `offset+limit` matches), `file_content` counts lines in one pass. Memory does not depend on the file size.
 
 **Limitations:**
-- The entire decompressed content is held in memory
+- No random access: every request decompresses the file from the beginning
 - File size in stats output reflects the compressed `.gz` file size, not the decompressed size
-
----
-
-### perf_test.go
-
-Go benchmarks for performance-critical code paths.
-
-| Benchmark                          | What it measures                              |
-|------------------------------------|-----------------------------------------------|
-| `BenchmarkParseFastNoTime`         | Fast-path parse (no context, no time parsing) |
-| `BenchmarkParseFullNoTime`         | Full parse with JSON context extraction       |
-| `BenchmarkContainsSearchValueASCII`| ASCII case-insensitive substring search       |
-| `BenchmarkParseHourBucket`         | Hour bucket extraction from timestamp         |
-
-Run with: `go test -bench=. -benchmem`
 
 ---
 
@@ -591,11 +567,10 @@ Run with: `go test -bench=. -benchmem`
 
 The tool transparently handles `.gz` compressed log files. When `--file` points to a `.gz` file:
 
-1. The file is decompressed entirely into memory using `compress/gzip`
+1. The file is decompressed as a stream using `compress/gzip`
 2. Auto-detection reads decompressed lines (gzip is decoded before parser probing)
-3. All modes (`logs`, `stat_dashboard`, `stat_log`) work identically to uncompressed files
-4. The decompressed data uses the same mmap-style code paths (binary search, parallel chunk processing, forward/reverse iteration)
-5. The `file` field in output entries uses the filename without the `.gz` extension (e.g. `error.log.gz` → `error.log`)
+3. All modes (`logs`, `stat_dashboard`, `stat_log`, `count`, `file_content`) work identically to uncompressed files
+4. The `file` field in output entries uses the filename without the `.gz` extension (e.g. `error.log.gz` → `error.log`)
 
 **Example:**
 
@@ -604,7 +579,7 @@ The tool transparently handles `.gz` compressed log files. When `--file` points 
 ./log-parser --file /var/log/syslog.gz --mode stats
 ```
 
-**Note:** The entire decompressed content is held in memory. For very large compressed files (multi-GB when decompressed), ensure sufficient RAM is available.
+**Note:** Memory usage is constant; time grows linearly with the decompressed size.
 
 ---
 
@@ -663,14 +638,16 @@ When `--parser` and `--pattern` are both omitted, the tool reads up to 10 lines 
 |---------------------------------|----------------------|---------------------------------------------------------|
 | Memory-mapped I/O               | `logs.go`, `stats.go`| Avoids kernel read+copy syscalls                       |
 | `MADV_SEQUENTIAL`               | `mmap.go`            | Kernel read-ahead hint for sequential scans            |
-| Data-parallel processing        | `stats.go`           | Each goroutine scans its own mmap chunk independently  |
-| Binary search for cursor        | `logs.go`            | O(log n) offset finding for cursor-based pagination    |
+| Data-parallel processing        | `stats.go`, `logs.go`| Chunks (stats) / growing segments with early stop (logs) |
+| Binary search by time           | `filters.go`         | O(log n) range narrowing for date-from/date-to/cursor  |
+| Zero-copy multi-line entries    | `scan.go`            | Entries are sub-slices of mmap data, no O(n²) joining  |
+| Fast ISO timestamp parser       | `parser.go`          | Allocation-free parse with cached fixed zones          |
+| Lazy context parsing            | `logs.go`            | JSON context is decoded only for the returned page     |
 | `sync.Pool` for LogEntry        | `parser.go`          | Eliminates GC pressure from entry allocation           |
 | `unsafe.String` zero-copy       | `mmap.go`            | No allocation for byte-to-string on mmap-backed slices |
-| Two-tier parsing                | All parsers          | `ExtractStatsFields` (fast, no alloc) vs `Parse` (full)|
 | Byte-level pre-filters          | `logs.go`, `stats.go`| Reject non-matching lines before any parsing           |
 | SIMD-accelerated byte search    | `parser.go`          | `bytes.IndexByte`/`strings.IndexByte` for first-char scan |
 | Cached timestamp layout         | `parser.go`          | `atomic.Value` caches last successful layout           |
 | Month lookup table              | `parser_nginx.go`    | Array indexed by letter-pair sum, no map overhead      |
-| Batch pooling                   | `stats.go`           | `sync.Pool` for `[][]byte` batch slices                |
+| Batch pooling                   | `stats.go`           | `sync.Pool` for `[][]byte` batch slices (stream path)  |
 | Buffered output                 | `logs.go`            | `bufio.NewWriterSize(stdout, 64KB)` reduces syscalls   |

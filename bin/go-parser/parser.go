@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	lastLayout atomic.Value
+	lastLayout       atomic.Value
 	timestampLayouts = []string{
 		time.RFC3339Nano,
 		"2006-01-02T15:04:05.000000Z07:00",
@@ -66,22 +66,22 @@ func PutEntry(e *LogEntry) {
 }
 
 type UniversalParser struct {
-	re             *regexp.Regexp
-	timestampIdx   int
-	levelIdx       int
-	channelIdx     int
-	messageIdx     int
-	fileIdx        int
-	contextIdx     int
-	extraIdx       int
-	statusIdx      int
-	requestIdx     int
-	remoteAddrIdx  int
-	bodySizeIdx    int
-	refererIdx     int
-	userAgentIdx   int
-	useFastPath    bool
-	isAccessLog    bool
+	re            *regexp.Regexp
+	timestampIdx  int
+	levelIdx      int
+	channelIdx    int
+	messageIdx    int
+	fileIdx       int
+	contextIdx    int
+	extraIdx      int
+	statusIdx     int
+	requestIdx    int
+	remoteAddrIdx int
+	bodySizeIdx   int
+	refererIdx    int
+	userAgentIdx  int
+	useFastPath   bool
+	isAccessLog   bool
 }
 
 func NewUniversalParser(re *regexp.Regexp) *UniversalParser {
@@ -100,6 +100,7 @@ func NewUniversalParser(re *regexp.Regexp) *UniversalParser {
 		messageIdx:    -1,
 		fileIdx:       -1,
 		contextIdx:    -1,
+		extraIdx:      -1,
 		statusIdx:     -1,
 		requestIdx:    -1,
 		remoteAddrIdx: -1,
@@ -160,35 +161,147 @@ func parseTimestamp(ts string) time.Time {
 		ts = ts[1 : len(ts)-1]
 	}
 
+	if t, ok := parseISOTimestampFast(ts); ok {
+		return fixYear(t)
+	}
+
 	var t time.Time
 	var err error
 
 	if l, ok := lastLayout.Load().(string); ok {
 		if t, err = time.Parse(l, ts); err == nil {
-			goto checkYear
+			return fixYear(t)
 		}
 	}
 
 	for _, l := range timestampLayouts {
 		if t, err = time.Parse(l, ts); err == nil {
 			lastLayout.Store(l)
-			goto checkYear
+			return fixYear(t)
 		}
 	}
-	if t, err = time.Parse("2/Jan/2006:15:04:05 -0700", ts); err == nil {
-		goto checkYear
-	}
-	if t, err = time.Parse("2006-01-02T15:04:05", ts); err == nil {
-		goto checkYear
+	for _, l := range fallbackLayouts {
+		if t, err = time.Parse(l, ts); err == nil {
+			return fixYear(t)
+		}
 	}
 	return time.Time{}
+}
 
-checkYear:
+// Layouts tried after timestampLayouts. "Jan _2 15:04:05" covers BSD syslog.
+var fallbackLayouts = []string{
+	"2/Jan/2006:15:04:05 -0700",
+	"2006-01-02T15:04:05",
+	"Jan _2 15:04:05",
+	"Jan 2 15:04:05",
+}
+
+// fixYear assigns the current year to year-less formats (e.g. BSD syslog).
+func fixYear(t time.Time) time.Time {
 	if t.Year() <= 1 {
 		now := time.Now()
 		t = time.Date(now.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second(), t.Nanosecond(), t.Location())
 	}
 	return t
+}
+
+var zoneCache sync.Map // offset seconds -> *time.Location
+
+func fixedZone(offset int) *time.Location {
+	if offset == 0 {
+		return time.UTC
+	}
+	if l, ok := zoneCache.Load(offset); ok {
+		return l.(*time.Location)
+	}
+	l := time.FixedZone("", offset)
+	zoneCache.Store(offset, l)
+	return l
+}
+
+func digits2(s string, i int) (int, bool) {
+	a, b := s[i], s[i+1]
+	if a < '0' || a > '9' || b < '0' || b > '9' {
+		return 0, false
+	}
+	return int(a-'0')*10 + int(b-'0'), true
+}
+
+// parseISOTimestampFast parses YYYY-MM-DD[T ]HH:MM:SS[(.|,)fraction][Z|±HH:MM] without
+// allocations. Timestamps without a zone are UTC (same as time.Parse). It returns
+// ok=false for anything else so that the generic layouts are tried.
+func parseISOTimestampFast(ts string) (time.Time, bool) {
+	n := len(ts)
+	if n < 19 || ts[4] != '-' || ts[7] != '-' || (ts[10] != 'T' && ts[10] != ' ') || ts[13] != ':' || ts[16] != ':' {
+		return time.Time{}, false
+	}
+	y1, ok1 := digits2(ts, 0)
+	y2, ok2 := digits2(ts, 2)
+	mo, ok3 := digits2(ts, 5)
+	d, ok4 := digits2(ts, 8)
+	h, ok5 := digits2(ts, 11)
+	mi, ok6 := digits2(ts, 14)
+	sec, ok7 := digits2(ts, 17)
+	if !(ok1 && ok2 && ok3 && ok4 && ok5 && ok6 && ok7) {
+		return time.Time{}, false
+	}
+	year := y1*100 + y2
+	if mo < 1 || mo > 12 || d < 1 || d > daysIn(time.Month(mo), year) || h > 23 || mi > 59 || sec > 59 {
+		return time.Time{}, false
+	}
+
+	i := 19
+	nsec := 0
+	if i < n && (ts[i] == '.' || ts[i] == ',') {
+		i++
+		start := i
+		scale := 100000000
+		for i < n && ts[i] >= '0' && ts[i] <= '9' {
+			if scale > 0 {
+				nsec += int(ts[i]-'0') * scale
+				scale /= 10
+			}
+			i++
+		}
+		if i == start {
+			return time.Time{}, false
+		}
+	}
+
+	loc := time.UTC
+	if i < n {
+		switch {
+		case ts[i] == 'Z' && i+1 == n:
+		case (ts[i] == '+' || ts[i] == '-') && n-i == 6 && ts[i+3] == ':':
+			oh, okH := digits2(ts, i+1)
+			om, okM := digits2(ts, i+4)
+			if !okH || !okM || oh > 23 || om > 59 {
+				return time.Time{}, false
+			}
+			off := oh*3600 + om*60
+			if ts[i] == '-' {
+				off = -off
+			}
+			loc = fixedZone(off)
+		default:
+			return time.Time{}, false
+		}
+	}
+
+	return time.Date(year, time.Month(mo), d, h, mi, sec, nsec, loc), true
+}
+
+func daysIn(m time.Month, year int) int {
+	switch m {
+	case time.February:
+		if year%4 == 0 && (year%100 != 0 || year%400 == 0) {
+			return 29
+		}
+		return 28
+	case time.April, time.June, time.September, time.November:
+		return 30
+	}
+	return 31
 }
 
 func parseHourBucket(ts string) string {
@@ -652,109 +765,5 @@ func (p *UniversalParser) Parse(line []byte, filename string, full, parseTime bo
 }
 
 func (p *UniversalParser) tryFastPath(line []byte, entry *LogEntry, full, parseTime bool) bool {
-	if len(line) < 10 || line[0] != '[' {
-		return false
-	}
-	endTs := bytes.IndexByte(line, ']')
-	if endTs == -1 {
-		return false
-	}
-	entry.Timestamp = unsafeString(line[1:endTs])
-
-	if len(line) <= endTs+2 || line[endTs+1] != ' ' {
-		return false
-	}
-
-	rest := line[endTs+2:]
-	dotIdx := bytes.IndexByte(rest, '.')
-	if dotIdx == -1 {
-		return false
-	}
-	entry.Channel = unsafeString(rest[:dotIdx])
-
-	colonIdx := bytes.IndexByte(rest[dotIdx:], ':')
-	if colonIdx == -1 {
-		return false
-	}
-	entry.Level = toUpperASCII(rest[dotIdx+1 : dotIdx+colonIdx])
-
-	messagePart := rest[dotIdx+colonIdx+1:]
-	if len(messagePart) > 0 && messagePart[0] == ' ' {
-		messagePart = messagePart[1:]
-	}
-
-	entry.Message = unsafeString(bytes.TrimSpace(messagePart))
-	if full {
-		current := messagePart
-		var combinedContext map[string]interface{}
-
-		for i := 0; i < 2; i++ {
-			trimmed := bytes.TrimSpace(current)
-			if len(trimmed) == 0 {
-				break
-			}
-
-			// Scan candidates right-to-left; the first success is the answer.
-			// json.Unmarshal rejects trailing content, so only the outermost
-			// complete block succeeds — a suffix of valid JSON is never itself
-			// valid JSON, guaranteeing at most one success.
-			var bestMap map[string]interface{}
-			bestIsMap := false
-			bestIdx := -1
-
-			searchBefore := len(trimmed)
-			for attempts := 0; searchBefore > 0 && attempts < 32; attempts++ {
-				idx := findJSONStartBefore(trimmed, searchBefore)
-				if idx == -1 {
-					break
-				}
-
-				potentialJSON := trimmed[idx:]
-				var m map[string]interface{}
-				if err := unmarshalLenientJSON(potentialJSON, &m); err == nil {
-					bestIdx = idx
-					bestMap = m
-					bestIsMap = true
-					break
-				}
-				var a []interface{}
-				if err := unmarshalLenientJSON(potentialJSON, &a); err == nil {
-					bestIdx = idx
-					bestIsMap = false
-					break
-				}
-				searchBefore = idx
-			}
-
-			if bestIdx == -1 {
-				break
-			}
-			if bestIsMap {
-				if combinedContext == nil {
-					combinedContext = bestMap
-				} else {
-					for k, v := range bestMap {
-						combinedContext[k] = v
-					}
-				}
-			}
-			current = trimmed[:bestIdx]
-		}
-
-		entry.Message = unsafeString(bytes.TrimSpace(current))
-		entry.Context = combinedContext
-		if combinedContext != nil {
-			if sql, ok := combinedContext["sql"].(string); ok {
-				entry.SQL = sql
-			}
-			if params, ok := combinedContext["params"].(map[string]interface{}); ok {
-				entry.Parameters = params
-			}
-		}
-	}
-
-	if parseTime {
-		entry.Time = parseTimestamp(entry.Timestamp)
-	}
-	return true
+	return parseMonologLine(line, entry, full, parseTime)
 }

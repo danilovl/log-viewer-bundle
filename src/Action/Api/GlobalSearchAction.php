@@ -62,7 +62,7 @@ readonly class GlobalSearchAction
 
             $hostId = $sourceInfo->host ?? 'local';
             $hash = sha1($hostId . $sourceInfo->filePath);
-            $sourceId = mb_substr($hash, 0, 12);
+            $sourceId = substr($hash, 0, 12);
 
             foreach ($entries as $entry) {
                 $allEntries[] = $entry->withSourceId($sourceId);

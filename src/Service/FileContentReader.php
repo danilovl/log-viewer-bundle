@@ -9,11 +9,11 @@ readonly class FileContentReader
     /**
      * @return string[]
      */
-    public function readLines(string $filePath, int $page, int $limit, ?int $line = null): array
+    public function readLines(string $filePath, int $page, int $limit, ?int $line = null, ?int $totalLines = null): array
     {
         $lines = [];
         $startLine = $line ?? ($page - 1) * $limit;
-        $totalLines = $this->getTotalLines($filePath);
+        $totalLines ??= $this->getTotalLines($filePath);
 
         $file = new SplFileObject($filePath, 'r');
         $file->seek($startLine);
@@ -22,7 +22,7 @@ readonly class FileContentReader
         while ($startLine + $count < $totalLines && !$file->eof() && $count < $limit) {
             $currentLine = $file->current();
             if (is_string($currentLine)) {
-                $lines[] = mb_rtrim($currentLine, "\r\n");
+                $lines[] = rtrim($currentLine, "\r\n");
             }
 
             $file->next();

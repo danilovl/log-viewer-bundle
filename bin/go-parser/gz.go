@@ -1,10 +1,9 @@
 package main
 
 import (
-	"bytes"
+	"bufio"
 	"compress/gzip"
 	"io"
-	"os"
 	"strings"
 )
 
@@ -12,24 +11,10 @@ func isGzipFile(path string) bool {
 	return strings.HasSuffix(strings.ToLower(path), ".gz")
 }
 
-func readGzipFull(path string) ([]byte, error) {
-	f, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-
-	gr, err := gzip.NewReader(f)
-	if err != nil {
-		return nil, err
-	}
-	defer gr.Close()
-
-	var buf bytes.Buffer
-	if _, err := io.Copy(&buf, gr); err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), nil
+// newGzipReader returns a streaming gzip reader (multi-member archives supported).
+// Files are never fully decompressed into memory.
+func newGzipReader(r io.Reader) (*gzip.Reader, error) {
+	return gzip.NewReader(bufio.NewReaderSize(r, 256*1024))
 }
 
 func stripGzExt(name string) string {

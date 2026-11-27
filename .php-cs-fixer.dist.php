@@ -9,7 +9,10 @@ return (new PhpCsFixer\Config())
         'declare_strict_types' => true,
         'backtick_to_shell_exec' => true,
         'ereg_to_preg' => true,
-        'mb_str_functions' => true,
+        // Disabled: it blindly rewrites byte functions to mb_* (slow in hot paths, and wrong
+        // for byte offsets). Use mb_* deliberately only for human text: case conversion,
+        // case-insensitive search, length/truncation in characters.
+        'mb_str_functions' => false,
         'modernize_strpos' => true,
         'no_alias_language_construct_call' => true,
         'no_mixed_echo_print' => true,

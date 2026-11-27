@@ -45,7 +45,7 @@ final readonly class LogNotifier
 
     private function matchRule(NotifierRule $rule, LogEntry $entry): bool
     {
-        if (!empty($rule->levels) && !in_array(mb_strtolower($entry->level), array_map('strtolower', $rule->levels), true)) {
+        if (!empty($rule->levels) && !in_array(mb_strtolower($entry->level), array_map('mb_strtolower', $rule->levels), true)) {
             return false;
         }
 

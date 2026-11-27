@@ -1,23 +1,21 @@
 package main
 
 import (
-	"bufio"
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
-	"regexp"
 	"runtime"
-	"strings"
 	"sync"
 	"time"
 )
 
 const (
 	batchSize = 2000
-	chanSize  = 1024
+	chanSize  = 256
+	// Files smaller than this are processed by a single worker.
+	minParallelSize = 4 * 1024 * 1024
 )
 
 type Stats struct {
@@ -27,115 +25,6 @@ type Stats struct {
 	Levels    map[string]int `json:"levels"`
 	Channels  map[string]int `json:"channels"`
 	Timeline  map[string]int `json:"timeline"`
-}
-
-var batchPool = sync.Pool{
-	New: func() interface{} {
-		return make([][]byte, 0, batchSize)
-	},
-}
-
-func appendStatsEntry(currentBatch *[][]byte, jobs chan<- [][]byte, entry []byte) {
-	if len(entry) == 0 {
-		return
-	}
-	*currentBatch = append(*currentBatch, entry)
-	if len(*currentBatch) >= batchSize {
-		jobs <- *currentBatch
-		*currentBatch = batchPool.Get().([][]byte)[:0]
-	}
-}
-
-func processMmap(data []byte, isNewEntry func([]byte) bool, jobs chan<- [][]byte) {
-	currentBatch := batchPool.Get().([][]byte)[:0]
-	offset := 0
-	var pending []byte
-
-	for offset < len(data) {
-		end := bytes.IndexByte(data[offset:], '\n')
-		var line []byte
-		if end == -1 {
-			line = data[offset:]
-			offset = len(data)
-		} else {
-			line = data[offset : offset+end]
-			offset += end + 1
-		}
-		if len(line) > 0 && line[len(line)-1] == '\r' {
-			line = line[:len(line)-1]
-		}
-
-		if isNewEntry(line) {
-			if len(pending) > 0 {
-				appendStatsEntry(&currentBatch, jobs, pending)
-			}
-			pending = line
-		} else {
-			if len(pending) == 0 {
-				pending = line
-			} else if len(pending) < 10*1024*1024 {
-				newPending := make([]byte, len(pending)+1+len(line))
-				copy(newPending, pending)
-				newPending[len(pending)] = '\n'
-				copy(newPending[len(pending)+1:], line)
-				pending = newPending
-			}
-		}
-	}
-	if len(pending) > 0 {
-		appendStatsEntry(&currentBatch, jobs, pending)
-	}
-	if len(currentBatch) > 0 {
-		jobs <- currentBatch
-	} else {
-		batchPool.Put(currentBatch)
-	}
-}
-
-func processScanner(f io.Reader, isNewEntry func([]byte) bool, jobs chan<- [][]byte) {
-	scanner := bufio.NewScanner(f)
-	buf := make([]byte, 64*1024)
-	scanner.Buffer(buf, 1024*1024)
-
-	currentBatch := batchPool.Get().([][]byte)[:0]
-	var pending []byte
-
-	for scanner.Scan() {
-		line := scanner.Bytes()
-		if len(line) > 0 && line[len(line)-1] == '\r' {
-			line = line[:len(line)-1]
-		}
-
-		if isNewEntry(line) {
-			if len(pending) > 0 {
-				appendStatsEntry(&currentBatch, jobs, pending)
-			}
-			pending = make([]byte, len(line))
-			copy(pending, line)
-		} else {
-			if len(pending) == 0 {
-				pending = make([]byte, len(line))
-				copy(pending, line)
-			} else if len(pending) < 10*1024*1024 {
-				newPending := make([]byte, len(pending)+1+len(line))
-				copy(newPending, pending)
-				newPending[len(pending)] = '\n'
-				copy(newPending[len(pending)+1:], line)
-				pending = newPending
-			}
-		}
-	}
-	if len(pending) > 0 {
-		appendStatsEntry(&currentBatch, jobs, pending)
-	}
-	if len(currentBatch) > 0 {
-		jobs <- currentBatch
-	} else {
-		batchPool.Put(currentBatch)
-	}
-	if err := scanner.Err(); err != nil {
-		fmt.Fprintf(os.Stderr, "Error reading file: %v\n", err)
-	}
 }
 
 func newStats(size int64, updatedAt string) *Stats {
@@ -148,146 +37,100 @@ func newStats(size int64, updatedAt string) *Stats {
 	}
 }
 
-func mergeLocalStats(stats *Stats, mu *sync.Mutex, lTotal int, lLevels, lChannels, lTimeline map[string]int) {
+// localStats is a per-worker accumulator (no locking, no per-entry allocation).
+type localStats struct {
+	total    int
+	levels   map[string]int
+	channels map[string]int
+	timeline map[int64]int
+}
+
+// Level/channel keys may point into mmap memory or entry buffers; they are
+// copied once per distinct key in mergeInto.
+func newLocalStats(withMaps bool) *localStats {
+	ls := &localStats{}
+	if withMaps {
+		ls.levels = make(map[string]int, 8)
+		ls.channels = make(map[string]int, 16)
+		ls.timeline = make(map[int64]int, 256)
+	}
+	return ls
+}
+
+func (ls *localStats) add(entry *LogEntry) {
+	ls.total++
+	if ls.levels == nil {
+		return
+	}
+	ls.levels[entry.Level]++
+	ls.channels[entry.Channel]++
+	if entry.Time.Year() > 1 {
+		ls.timeline[hourKey(entry.Time)]++
+	}
+}
+
+func (ls *localStats) mergeInto(stats *Stats, mu *sync.Mutex) {
 	mu.Lock()
-	stats.Total += lTotal
-	for k, v := range lLevels {
-		stats.Levels[k] += v
+	defer mu.Unlock()
+	stats.Total += ls.total
+	for k, v := range ls.levels {
+		stats.Levels[cloneString(k)] += v
 	}
-	for k, v := range lChannels {
-		stats.Channels[k] += v
+	for k, v := range ls.channels {
+		stats.Channels[cloneString(k)] += v
 	}
-	for k, v := range lTimeline {
-		stats.Timeline[k] += v
-	}
-	mu.Unlock()
-}
-
-// findChunkBoundaries splits mmap data into numChunks chunks aligned at entry boundaries.
-func findChunkBoundaries(data []byte, numChunks int, isNewEntry func([]byte) bool) []int {
-	boundaries := make([]int, numChunks+1)
-	boundaries[0] = 0
-	boundaries[numChunks] = len(data)
-
-	chunkSize := len(data) / numChunks
-	for i := 1; i < numChunks; i++ {
-		pos := i * chunkSize
-		for pos < len(data)-1 {
-			if data[pos] == '\n' {
-				candidate := data[pos+1:]
-
-				lineEnd := bytes.IndexByte(candidate, '\n')
-				var line []byte
-				if lineEnd == -1 {
-					line = candidate
-				} else {
-					line = candidate[:lineEnd]
-				}
-				if isNewEntry(line) {
-					pos++
-					break
-				}
-			}
-			pos++
-		}
-		boundaries[i] = pos
-	}
-	return boundaries
-}
-
-// scanChunkEntries iterates entries in a mmap chunk, calling fn for each complete log entry.
-func scanChunkEntries(chunk []byte, isNewEntry func([]byte) bool, fn func([]byte)) {
-	offset := 0
-	var pending []byte
-
-	for offset < len(chunk) {
-		end := bytes.IndexByte(chunk[offset:], '\n')
-		var line []byte
-		if end == -1 {
-			line = chunk[offset:]
-			offset = len(chunk)
-		} else {
-			line = chunk[offset : offset+end]
-			offset += end + 1
-		}
-		if len(line) > 0 && line[len(line)-1] == '\r' {
-			line = line[:len(line)-1]
-		}
-
-		if isNewEntry(line) {
-			if len(pending) > 0 {
-				if len(pending) > 1 || (pending[0] != ' ' && pending[0] != '\n' && pending[0] != '\r') {
-					fn(pending)
-				}
-			}
-			pending = line
-		} else {
-			if len(pending) == 0 {
-				pending = line
-			} else if len(pending) < 10*1024*1024 {
-				newPending := make([]byte, len(pending)+1+len(line))
-				copy(newPending, pending)
-				newPending[len(pending)] = '\n'
-				copy(newPending[len(pending)+1:], line)
-				pending = newPending
-			}
-		}
-	}
-	if len(pending) > 0 {
-		fn(pending)
+	for k, v := range ls.timeline {
+		stats.Timeline[hourKeyString(k)] += v
 	}
 }
 
-// runStatsDashboard collects full-file stats with no filters.
-func runStatsDashboard(cfg RemoteConfig, parser LogParser, dateFrom, dateTo string) {
+func cloneString(s string) string {
+	return string([]byte(s))
+}
+
+// aggregate runs the filter over the whole file using all CPUs and feeds matches into
+// per-worker accumulators. withMaps=false only counts.
+func aggregate(cfg RemoteConfig, parser LogParser, f *entryFilter, withMaps bool) (*Stats, error) {
 	file, size, err := OpenLogFile(cfg)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error opening file: %v\n", err)
-		os.Exit(1)
+		return nil, err
 	}
 	defer file.Close()
 
-	var dFrom, dTo time.Time
-	if dateFrom != "" {
-		dFrom = parseTimestamp(dateFrom)
-	}
-	if dateTo != "" {
-		dTo = parseTimestamp(dateTo)
-	}
-
 	updatedAt := time.Now().Format(time.RFC3339)
-	if f, ok := file.(*os.File); ok {
-		if fi, err := f.Stat(); err == nil {
+	if osF, ok := file.(*os.File); ok {
+		if fi, err := osF.Stat(); err == nil {
 			updatedAt = fi.ModTime().Format(time.RFC3339)
 		}
 	}
 
 	stats := newStats(size, updatedAt)
-	var statsMu sync.Mutex
+	var mu sync.Mutex
 	numWorkers := runtime.NumCPU()
 	isNewEntry := parser.IsNewEntry
+	fileName := stripGzExt(filepath.Base(cfg.FilePath))
 
 	var mmapData []byte
-	var mmapErr error = fmt.Errorf("mmap not supported for remote")
-
-	if cfg.Host == "" {
-		if isGzipFile(cfg.FilePath) {
-			mmapData, mmapErr = readGzipFull(cfg.FilePath)
-		} else if f, ok := file.(*os.File); ok {
-			mmapData, mmapErr = Mmap(f)
-			if mmapErr == nil && len(mmapData) > 0 {
+	if cfg.Host == "" && !isGzipFile(cfg.FilePath) {
+		if osF, ok := file.(*os.File); ok {
+			if data, mErr := Mmap(osF); mErr == nil && len(data) > 0 {
+				mmapData = data
 				defer Munmap(mmapData)
 			}
 		}
 	}
 
-	if mmapErr == nil && len(mmapData) > 0 {
+	if mmapData != nil {
+		defer guardMmap()()
 		MadviseSequential(mmapData)
+		lo, hi := searchRange(mmapData, parser, f, time.Time{}, true)
+		if hi-lo < minParallelSize {
+			numWorkers = 1
+		}
+		boundaries := findChunkBoundaries(mmapData, lo, hi, numWorkers, isNewEntry)
 
-		boundaries := findChunkBoundaries(mmapData, numWorkers, isNewEntry)
 		var wg sync.WaitGroup
-
-		for ci := 0; ci < numWorkers; ci++ {
+		for ci := 0; ci+1 < len(boundaries); ci++ {
 			start, end := boundaries[ci], boundaries[ci+1]
 			if start >= end {
 				continue
@@ -295,554 +138,120 @@ func runStatsDashboard(cfg RemoteConfig, parser LogParser, dateFrom, dateTo stri
 			wg.Add(1)
 			go func(chunk []byte) {
 				defer wg.Done()
-				lTotal := 0
-				lLevels := make(map[string]int, 8)
-				lChannels := make(map[string]int, 16)
-				lTimeline := make(map[string]int, 64)
-
-				scanChunkEntries(chunk, isNewEntry, func(line []byte) {
-					if len(line) == 0 {
-						return
-					}
-					isAllSpaces := true
-					for _, b := range line {
-						if b != ' ' && b != '\t' && b != '\r' && b != '\n' {
-							isAllSpaces = false
-							break
-						}
-					}
-					if isAllSpaces {
-						return
-					}
-
-					fileName := stripGzExt(filepath.Base(cfg.FilePath))
-					entry := parser.Parse(line, fileName, false, true)
-					if entry == nil {
-						return
-					}
-					if !parser.IsNewEntry(line) && entry.Timestamp == "" {
-						return
-					}
-
-					entryTime := entry.Time
-					eTimeStr := ""
-					if entryTime.Year() > 1 {
-						eTimeStr = entryTime.Format("2006-01-02 15:04:05")
-					}
-
-					if !dFrom.IsZero() && eTimeStr != "" {
-						dFromStr := dFrom.Format("2006-01-02 15:04:05")
-						if eTimeStr < dFromStr {
-							PutEntry(entry)
-							return
-						}
-					}
-					if !dTo.IsZero() && eTimeStr != "" {
-						dToStr := dTo.Format("2006-01-02 15:04:05")
-						if eTimeStr > dToStr {
-							PutEntry(entry)
-							return
-						}
-					}
-
-					lTotal++
-					lLevels[entry.Level]++
-					lChannels[entry.Channel]++
-					if h := parseHourBucket(entry.Timestamp); h != "" {
-						lTimeline[h]++
-					}
-					PutEntry(entry)
-				})
-
-				mergeLocalStats(stats, &statsMu, lTotal, lLevels, lChannels, lTimeline)
-			}(mmapData[start:end])
-		}
-		wg.Wait()
-	} else {
-		jobs := make(chan [][]byte, chanSize)
-		var wg sync.WaitGroup
-
-		for i := 0; i < numWorkers; i++ {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				lTotal := 0
-				lLevels := make(map[string]int, 8)
-				lChannels := make(map[string]int, 16)
-				lTimeline := make(map[string]int, 64)
-
-				for batch := range jobs {
-					for _, line := range batch {
-						if len(line) == 0 {
-							continue
-						}
-						isAllSpaces := true
-						for _, b := range line {
-							if b != ' ' && b != '\t' && b != '\r' && b != '\n' {
-								isAllSpaces = false
-								break
-							}
-						}
-						if isAllSpaces {
-							continue
-						}
-
-						fileName := stripGzExt(filepath.Base(cfg.FilePath))
-						entry := parser.Parse(line, fileName, false, true)
-						if entry == nil {
-							continue
-						}
-						if !parser.IsNewEntry(line) && entry.Timestamp == "" {
-							continue
-						}
-
-						entryTime := entry.Time
-						eTimeStr := ""
-						if entryTime.Year() > 1 {
-							eTimeStr = entryTime.Format("2006-01-02 15:04:05")
-						}
-
-						if !dFrom.IsZero() && eTimeStr != "" {
-							dFromStr := dFrom.Format("2006-01-02 15:04:05")
-							if eTimeStr < dFromStr {
-								PutEntry(entry)
-								continue
-							}
-						}
-						if !dTo.IsZero() && eTimeStr != "" {
-							dToStr := dTo.Format("2006-01-02 15:04:05")
-							if eTimeStr > dToStr {
-								PutEntry(entry)
-								continue
-							}
-						}
-
-						lTotal++
-						lLevels[entry.Level]++
-						lChannels[entry.Channel]++
-						if h := parseHourBucket(entry.Timestamp); h != "" {
-							lTimeline[h]++
-						}
+				defer guardMmap()()
+				ls := newLocalStats(withMaps)
+				scanEntries(chunk, isNewEntry, func(line []byte, _ int) bool {
+					if entry := f.match(line, fileName); entry != nil {
+						ls.add(entry)
 						PutEntry(entry)
 					}
-					batchPool.Put(batch)
-				}
-				mergeLocalStats(stats, &statsMu, lTotal, lLevels, lChannels, lTimeline)
-			}()
-		}
-		processScanner(file, isNewEntry, jobs)
-		close(jobs)
-		wg.Wait()
-	}
-
-	resData, _ := json.Marshal(stats)
-	fmt.Println(string(resData))
-}
-
-// runStatsLog collects stats with filter support.
-func runStatsLog(cfg RemoteConfig, parser LogParser, filterLevel, filterLevels, filterChannel, filterSearch string, searchRegex, searchCaseSensitive bool, dateFrom, dateTo string) {
-	file, size, err := OpenLogFile(cfg)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error opening file: %v\n", err)
-		os.Exit(1)
-	}
-	defer file.Close()
-
-	var dFrom, dTo time.Time
-	if dateFrom != "" {
-		dFrom = parseTimestamp(dateFrom)
-	}
-	if dateTo != "" {
-		dTo = parseTimestamp(dateTo)
-	}
-
-	updatedAt := time.Now().Format(time.RFC3339)
-	if f, ok := file.(*os.File); ok {
-		if fi, err := f.Stat(); err == nil {
-			updatedAt = fi.ModTime().Format(time.RFC3339)
-		}
-	}
-
-	stats := newStats(size, updatedAt)
-	var statsMu sync.Mutex
-	numWorkers := runtime.NumCPU()
-	isNewEntry := parser.IsNewEntry
-
-	var searchRe *regexp.Regexp
-	if searchRegex && filterSearch != "" {
-		pStr := filterSearch
-		if !searchCaseSensitive && !strings.HasPrefix(pStr, "(?i)") {
-			pStr = "(?i)" + pStr
-		}
-		searchRe, _ = regexp.Compile(pStr)
-	}
-
-	searchVal := filterSearch
-	searchASCII := true
-	if filterSearch != "" {
-		if !searchCaseSensitive && !searchRegex {
-			searchVal = strings.ToLower(filterSearch)
-		}
-		searchASCII = isASCIIString(searchVal)
-	}
-
-	filterLevelsUpper := make(map[string]struct{})
-	if filterLevels != "" {
-		for _, s := range strings.Split(filterLevels, ",") {
-			filterLevelsUpper[strings.ToUpper(strings.TrimSpace(s))] = struct{}{}
-		}
-	} else {
-		filterLevelsUpper = nil
-	}
-
- 	processFilteredLine := func(line []byte, lTotal *int, lLevels, lChannels, lTimeline map[string]int) {
- 		if len(line) == 0 {
- 			return
- 		}
-		
- 		isAllSpaces := true
- 		for _, b := range line {
- 			if b != ' ' && b != '\t' && b != '\r' && b != '\n' {
- 				isAllSpaces = false
- 				break
- 			}
- 		}
- 		if isAllSpaces {
- 			return
- 		}
-
-		// Pre-filter level/channel on raw bytes if possible
-		if filterLevel != "" && isASCIIString(filterLevel) {
-			if !containsFoldASCIIBytes(line, []byte(strings.ToLower(filterLevel))) {
-				return
-			}
-		}
-
-		if searchVal != "" {
-			if !containsSearchValueBytes(line, searchVal, searchRegex, searchCaseSensitive, searchASCII, searchRe) {
-				return
-			}
-		}
-
- 		fileName := stripGzExt(filepath.Base(cfg.FilePath))
- 		entry := parser.Parse(line, fileName, false, true)
- 		if entry == nil {
- 			return
- 		}
-
- 		entryTime := entry.Time
- 		eTimeStr := ""
- 		if entryTime.Year() > 1 {
- 			eTimeStr = entryTime.Format("2006-01-02 15:04:05")
- 		}
-
- 		if !dFrom.IsZero() && eTimeStr != "" {
- 			dFromStr := dFrom.Format("2006-01-02 15:04:05")
- 			if eTimeStr < dFromStr {
- 				PutEntry(entry)
- 				return
- 			}
- 		}
- 		if !dTo.IsZero() && eTimeStr != "" {
- 			dToStr := dTo.Format("2006-01-02 15:04:05")
- 			if eTimeStr > dToStr {
- 				PutEntry(entry)
- 				return
- 			}
- 		}
-
-		if filterLevel != "" && entry.Level != strings.ToUpper(filterLevel) {
-			PutEntry(entry)
-			return
-		}
-		if filterLevelsUpper != nil {
-			if _, ok := filterLevelsUpper[entry.Level]; !ok {
-				PutEntry(entry)
-				return
-			}
-		}
-		if filterChannel != "" && !strings.EqualFold(entry.Channel, filterChannel) {
-			PutEntry(entry)
-			return
-		}
-
-		*lTotal++
-		lLevels[entry.Level]++
-		lChannels[entry.Channel]++
-		if h := parseHourBucket(entry.Timestamp); h != "" {
-			lTimeline[h]++
-		}
-		PutEntry(entry)
-	}
-
-	var mmapData []byte
-	var mmapErr error = fmt.Errorf("mmap not supported for remote")
-
-	if cfg.Host == "" {
-		if isGzipFile(cfg.FilePath) {
-			mmapData, mmapErr = readGzipFull(cfg.FilePath)
-		} else if f, ok := file.(*os.File); ok {
-			mmapData, mmapErr = Mmap(f)
-			if mmapErr == nil && len(mmapData) > 0 {
-				defer Munmap(mmapData)
-			}
-		}
-	}
-
-	if mmapErr == nil && len(mmapData) > 0 {
-		MadviseSequential(mmapData)
-
-		boundaries := findChunkBoundaries(mmapData, numWorkers, isNewEntry)
-		var wg sync.WaitGroup
-
-		for ci := 0; ci < numWorkers; ci++ {
-			start, end := boundaries[ci], boundaries[ci+1]
-			if start >= end {
-				continue
-			}
-			wg.Add(1)
-			go func(chunk []byte) {
-				defer wg.Done()
-				lTotal := 0
-				lLevels := make(map[string]int, 8)
-				lChannels := make(map[string]int, 16)
-				lTimeline := make(map[string]int, 64)
-
-				scanChunkEntries(chunk, isNewEntry, func(line []byte) {
-					processFilteredLine(line, &lTotal, lLevels, lChannels, lTimeline)
+					return true
 				})
-
-				mergeLocalStats(stats, &statsMu, lTotal, lLevels, lChannels, lTimeline)
+				ls.mergeInto(stats, &mu)
 			}(mmapData[start:end])
 		}
 		wg.Wait()
-	} else {
-		jobs := make(chan [][]byte, chanSize)
-		var wg sync.WaitGroup
-
-		for i := 0; i < numWorkers; i++ {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				lTotal := 0
-				lLevels := make(map[string]int, 8)
-				lChannels := make(map[string]int, 16)
-				lTimeline := make(map[string]int, 64)
-
-				for batch := range jobs {
-					for _, line := range batch {
-						processFilteredLine(line, &lTotal, lLevels, lChannels, lTimeline)
-					}
-					batchPool.Put(batch)
-				}
-				mergeLocalStats(stats, &statsMu, lTotal, lLevels, lChannels, lTimeline)
-			}()
-		}
-		processScanner(file, isNewEntry, jobs)
-		close(jobs)
-		wg.Wait()
+		return stats, nil
 	}
 
-	resData, _ := json.Marshal(stats)
-	fmt.Println(string(resData))
+	// Streaming path: gzip, remote or non-mmapable files. Memory stays O(batch).
+	var reader io.Reader = file
+	if cfg.Host == "" && isGzipFile(cfg.FilePath) {
+		gr, gErr := newGzipReader(file)
+		if gErr != nil {
+			return nil, gErr
+		}
+		defer gr.Close()
+		reader = gr
+	}
+
+	jobs := make(chan [][]byte, chanSize)
+	pool := sync.Pool{New: func() interface{} { return make([][]byte, 0, batchSize) }}
+	var wg sync.WaitGroup
+	for i := 0; i < numWorkers; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			ls := newLocalStats(withMaps)
+			for batch := range jobs {
+				for _, line := range batch {
+					if entry := f.match(line, fileName); entry != nil {
+						ls.add(entry)
+						PutEntry(entry)
+					}
+				}
+				pool.Put(batch[:0])
+			}
+			ls.mergeInto(stats, &mu)
+		}()
+	}
+
+	batch := pool.Get().([][]byte)[:0]
+	streamErr := streamEntries(reader, isNewEntry, func(entry []byte, _ int) bool {
+		batch = append(batch, entry)
+		if len(batch) >= batchSize {
+			jobs <- batch
+			batch = pool.Get().([][]byte)[:0]
+		}
+		return true
+	})
+	if len(batch) > 0 {
+		jobs <- batch
+	}
+	close(jobs)
+	wg.Wait()
+
+	if streamErr != nil {
+		fmt.Fprintf(os.Stderr, "Error reading file: %v\n", streamErr)
+	}
+	return stats, nil
 }
 
-// Backward-compatible aliases for old mode names.
-func runStats(cfg RemoteConfig, parser LogParser, dateFrom, dateTo string) {
-	runStatsDashboard(cfg, parser, dateFrom, dateTo)
+// runStatsDashboard collects full-file stats (only date filters).
+func runStatsDashboard(cfg RemoteConfig, parser LogParser, dateFrom, dateTo string) {
+	f, err := newEntryFilter(parser, "", "", "", "", false, false, dateFrom, dateTo)
+	if err != nil {
+		fail("%v", err)
+	}
+	stats, err := aggregate(cfg, parser, f, true)
+	if err != nil {
+		fail("Error opening file: %v", err)
+	}
+	writeJSON(stats)
 }
 
+// runStatsFilter collects stats with filter support.
 func runStatsFilter(cfg RemoteConfig, parser LogParser, filterLevel, filterLevels, filterChannel, filterSearch string, searchRegex, searchCaseSensitive bool, dateFrom, dateTo string) {
-	runStatsLog(cfg, parser, filterLevel, filterLevels, filterChannel, filterSearch, searchRegex, searchCaseSensitive, dateFrom, dateTo)
+	f, err := newEntryFilter(parser, filterLevel, filterLevels, filterChannel, filterSearch, searchRegex, searchCaseSensitive, dateFrom, dateTo)
+	if err != nil {
+		fail("%v", err)
+	}
+	stats, err := aggregate(cfg, parser, f, true)
+	if err != nil {
+		fail("Error opening file: %v", err)
+	}
+	writeJSON(stats)
 }
 
-// runCount counts total entries with filter support.
+// runCount counts entries with filter support.
 func runCount(cfg RemoteConfig, parser LogParser, filterLevel, filterLevels, filterChannel, filterSearch string, searchRegex, searchCaseSensitive bool, dateFrom, dateTo string) {
-	file, _, err := OpenLogFile(cfg)
+	f, err := newEntryFilter(parser, filterLevel, filterLevels, filterChannel, filterSearch, searchRegex, searchCaseSensitive, dateFrom, dateTo)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error opening file: %v\n", err)
-		os.Exit(1)
+		fail("%v", err)
 	}
-	defer file.Close()
-
-	var dFrom, dTo time.Time
-	if dateFrom != "" {
-		dFrom = parseTimestamp(dateFrom)
+	stats, err := aggregate(cfg, parser, f, false)
+	if err != nil {
+		fail("Error opening file: %v", err)
 	}
-	if dateTo != "" {
-		dTo = parseTimestamp(dateTo)
-	}
+	fmt.Printf("{\"total\":%d}\n", stats.Total)
+}
 
-	numWorkers := runtime.NumCPU()
-	fileName := stripGzExt(filepath.Base(cfg.FilePath))
-	isNewEntry := parser.IsNewEntry
+func writeJSON(v interface{}) {
+	resData, _ := json.Marshal(v)
+	fmt.Println(string(resData))
+}
 
-	var searchRe *regexp.Regexp
-	if searchRegex && filterSearch != "" {
-		pStr := filterSearch
-		if !searchCaseSensitive && !strings.HasPrefix(pStr, "(?i)") {
-			pStr = "(?i)" + pStr
-		}
-		searchRe, _ = regexp.Compile(pStr)
-	}
-
-	searchVal := filterSearch
-	searchASCII := true
-	if filterSearch != "" {
-		if !searchCaseSensitive && !searchRegex {
-			searchVal = strings.ToLower(filterSearch)
-		}
-		searchASCII = isASCIIString(searchVal)
-	}
-
-	filterLevelsUpper := make(map[string]struct{})
-	if filterLevels != "" {
-		for _, s := range strings.Split(filterLevels, ",") {
-			filterLevelsUpper[strings.ToUpper(strings.TrimSpace(s))] = struct{}{}
-		}
-	} else {
-		filterLevelsUpper = nil
-	}
-
-	processCountLine := func(line []byte, lTotal *int) {
-		if len(line) == 0 {
-			return
-		}
-		
-		isAllSpaces := true
-		for _, b := range line {
-			if b != ' ' && b != '\t' && b != '\r' && b != '\n' {
-				isAllSpaces = false
-				break
-			}
-		}
-		if isAllSpaces {
-			return
-		}
-
-		// Pre-filter level/channel on raw bytes if possible
-		if filterLevel != "" && isASCIIString(filterLevel) {
-			if !containsFoldASCIIBytes(line, []byte(strings.ToLower(filterLevel))) {
-				return
-			}
-		}
-
-		if searchVal != "" {
-			if !containsSearchValueBytes(line, searchVal, searchRegex, searchCaseSensitive, searchASCII, searchRe) {
-				return
-			}
-		}
-
-		entry := parser.Parse(line, fileName, false, true)
-		if entry == nil {
-			return
-		}
-		if !parser.IsNewEntry(line) && entry.Timestamp == "" {
-			return
-		}
-
-		entryTime := entry.Time
-		eTimeStr := ""
-		if entryTime.Year() > 1 {
-			eTimeStr = entryTime.Format("2006-01-02 15:04:05")
-		}
-
-		if !dFrom.IsZero() && eTimeStr != "" {
-			dFromStr := dFrom.Format("2006-01-02 15:04:05")
-			if eTimeStr < dFromStr {
-				PutEntry(entry)
-				return
-			}
-		}
-		if !dTo.IsZero() && eTimeStr != "" {
-			dToStr := dTo.Format("2006-01-02 15:04:05")
-			if eTimeStr > dToStr {
-				PutEntry(entry)
-				return
-			}
-		}
-
-		if filterLevel != "" && entry.Level != strings.ToUpper(filterLevel) {
-			PutEntry(entry)
-			return
-		}
-		if filterLevelsUpper != nil {
-			if _, ok := filterLevelsUpper[entry.Level]; !ok {
-				PutEntry(entry)
-				return
-			}
-		}
-		if filterChannel != "" && !strings.EqualFold(entry.Channel, filterChannel) {
-			PutEntry(entry)
-			return
-		}
-
-		*lTotal++
-		PutEntry(entry)
-	}
-
-	total := 0
-	var totalMu sync.Mutex
-
-	var mmapData []byte
-	var mmapErr error = fmt.Errorf("mmap not supported for remote")
-
-	if cfg.Host == "" {
-		if isGzipFile(cfg.FilePath) {
-			mmapData, mmapErr = readGzipFull(cfg.FilePath)
-		} else if f, ok := file.(*os.File); ok {
-			mmapData, mmapErr = Mmap(f)
-			if mmapErr == nil && len(mmapData) > 0 {
-				defer Munmap(mmapData)
-			}
-		}
-	}
-
-	if mmapErr == nil && len(mmapData) > 0 {
-		MadviseSequential(mmapData)
-		boundaries := findChunkBoundaries(mmapData, numWorkers, isNewEntry)
-		var wg sync.WaitGroup
-		for ci := 0; ci < numWorkers; ci++ {
-			start, end := boundaries[ci], boundaries[ci+1]
-			if start >= end {
-				continue
-			}
-			wg.Add(1)
-			go func(chunk []byte) {
-				defer wg.Done()
-				lTotal := 0
-				scanChunkEntries(chunk, isNewEntry, func(line []byte) {
-					processCountLine(line, &lTotal)
-				})
-				totalMu.Lock()
-				total += lTotal
-				totalMu.Unlock()
-			}(mmapData[start:end])
-		}
-		wg.Wait()
-	} else {
-		jobs := make(chan [][]byte, chanSize)
-		var wg sync.WaitGroup
-		for i := 0; i < numWorkers; i++ {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				lTotal := 0
-				for batch := range jobs {
-					for _, line := range batch {
-						processCountLine(line, &lTotal)
-					}
-					batchPool.Put(batch)
-				}
-				totalMu.Lock()
-				total += lTotal
-				totalMu.Unlock()
-			}()
-		}
-		processScanner(file, isNewEntry, jobs)
-		close(jobs)
-		wg.Wait()
-	}
-
-	fmt.Printf("{\"total\":%d}\n", total)
+func fail(format string, args ...interface{}) {
+	fmt.Fprintf(os.Stderr, format+"\n", args...)
+	os.Exit(1)
 }

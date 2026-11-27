@@ -26,7 +26,7 @@ final class NginxErrorParser implements LogInterfaceParser
 
         return new LogEntry(
             timestamp: $matches['timestamp'],
-            level: mb_strtoupper($matches['level']),
+            level: strtoupper($matches['level']),
             channel: 'nginx_error',
             message: $matches['message'],
             file: $filename,

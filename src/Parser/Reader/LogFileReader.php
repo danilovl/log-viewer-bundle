@@ -3,6 +3,7 @@
 namespace Danilovl\LogViewerBundle\Parser\Reader;
 
 use Danilovl\LogViewerBundle\Util\DateNormalizer;
+use DateTimeImmutable;
 use Generator;
 use Danilovl\LogViewerBundle\DTO\{
     LogEntry,
@@ -40,17 +41,31 @@ class LogFileReader
         $search = $filters?->search;
         $searchRegex = $filters !== null && $filters->searchRegex;
         $searchRegexPattern = $searchRegex ? $this->getSearchRegexPattern($filters) : null;
+        $normalizedCursor = $this->normalizeCursor($cursor);
         $entries = [];
 
         try {
             $count = 0;
             $skipped = 0;
 
+            // Local files: narrow the byte range by date filters / cursor (binary search).
+            $startPos = 0;
+            $endPos = null;
+            if ($host === null) {
+                [$startPos, $endPos] = $this->narrowRange($handle, $filePath, $parserType, $filters, $normalizedCursor, $sortDir);
+            }
+
             if ($sortDir === 'desc') {
-                $totalLines = $this->getCount($filePath, $parserType, host: $host);
-                $lines = $this->readLinesReversed($handle, $totalLines);
+                if ($endPos !== null) {
+                    $totalLines = $this->countLinesBefore($handle, $endPos);
+                } else {
+                    $totalLines = $this->getCount($filePath, $parserType, host: $host);
+                }
+                $lines = $this->readLinesReversed($handle, $totalLines, $endPos, $startPos);
             } else {
-                $lines = $this->readLinesForward($handle);
+                $firstLine = $startPos > 0 ? $this->countLinesBefore($handle, $startPos) : 0;
+                fseek($handle, $startPos);
+                $lines = $this->readLinesForward($handle, $firstLine, $endPos);
             }
 
             foreach ($lines as $lineNumber => $line) {
@@ -61,14 +76,19 @@ class LogFileReader
                     break;
                 }
 
-                if ($search !== null && !$searchRegex && mb_stripos($line, $search) === false) {
+                if ($search !== null && !$searchRegex && !$this->containsIgnoreCase($line, $search)) {
                     continue;
                 }
 
                 $entry = $this->parser->parse($line, $filePath, $parserType);
                 $entry = $entry->withLineNumber($lineNumber);
 
-                if ($filters !== null && !$this->applyFilters($entry, $filters, $cursor, $sortDir, $searchRegexPattern)) {
+                if ($filters !== null && !$this->applyFilters($entry, $filters, $normalizedCursor, $sortDir, $searchRegexPattern)) {
+                    continue;
+                }
+
+                // The cursor must work without other filters too.
+                if ($filters === null && $normalizedCursor !== null && !$this->matchCursor($entry, $normalizedCursor, $sortDir)) {
                     continue;
                 }
 
@@ -127,11 +147,11 @@ class LogFileReader
 
         try {
             while (($line = fgets($handle)) !== false) {
-                if ($search !== null && !$searchRegex && mb_stripos($line, $search) === false) {
+                if ($search !== null && !$searchRegex && !$this->containsIgnoreCase($line, $search)) {
                     continue;
                 }
 
-                $trimmedLine = mb_trim($line);
+                $trimmedLine = $this->trimLine($line);
                 if ($trimmedLine === '') {
                     continue;
                 }
@@ -187,12 +207,12 @@ class LogFileReader
 
             try {
                 while (!feof($handle)) {
-                    $buffer = fread($handle, 65_536);
+                    $buffer = fread($handle, 1_048_576);
                     if ($buffer === false || $buffer === '') {
                         break;
                     }
-                    $total += mb_substr_count($buffer, "\n");
-                    $lastChar = $buffer[mb_strlen($buffer) - 1];
+                    $total += substr_count($buffer, "\n");
+                    $lastChar = $buffer[-1];
                 }
 
                 if ($lastChar !== null && $lastChar !== "\n") {
@@ -214,11 +234,11 @@ class LogFileReader
 
         try {
             while (($line = fgets($handle)) !== false) {
-                if ($search !== null && !$searchRegex && mb_stripos($line, $search) === false) {
+                if ($search !== null && !$searchRegex && !$this->containsIgnoreCase($line, $search)) {
                     continue;
                 }
 
-                $trimmedLine = mb_trim($line);
+                $trimmedLine = $this->trimLine($line);
                 if ($trimmedLine === '') {
                     continue;
                 }
@@ -261,9 +281,6 @@ class LogFileReader
             }
         }
 
-        clearstatcache(true, $filePath);
-        $currentSize = (int) filesize($filePath);
-
         if ($lastPosition > $currentSize) {
             $lastPosition = 0;
         }
@@ -285,8 +302,6 @@ class LogFileReader
             return ['entries' => [], 'position' => $newPosition];
         }
 
-        clearstatcache(true, $filePath);
-        $currentSize = (int) filesize($filePath);
         $hasFilters = $filters !== null && $filters->hasFilters;
         $search = $filters?->search;
         $searchRegex = $filters !== null && $filters->searchRegex;
@@ -295,14 +310,20 @@ class LogFileReader
 
         try {
             while (($line = fgets($handle)) !== false) {
-                $trimmedLine = mb_trim($line);
+                // The writer may still be in the middle of this line: keep the position
+                // before it so that the complete line is read on the next poll.
+                if (!str_ends_with($line, "\n")) {
+                    break;
+                }
+
+                $trimmedLine = $this->trimLine($line);
                 if ($trimmedLine === '') {
                     $newPosition = ftell($handle) ?: $newPosition;
 
                     continue;
                 }
 
-                if ($search !== null && !$searchRegex && mb_stripos($line, $search) === false) {
+                if ($search !== null && !$searchRegex && !$this->containsIgnoreCase($line, $search)) {
                     $newPosition = ftell($handle) ?: $newPosition;
 
                     continue;
@@ -330,21 +351,30 @@ class LogFileReader
         return ['entries' => $entries, 'position' => $newPosition];
     }
 
-    private function applyFilters(LogEntry $entry, LogViewerFilters $filters, ?string $cursor, string $sortDir, ?string $searchRegexPattern = null): bool
+    private function entryTimestamp(LogEntry $entry): string
     {
         $entryTimestamp = $entry->normalizedTimestamp !== '' ? $entry->normalizedTimestamp : DateNormalizer::normalize($entry->timestamp);
-        $entryTimestamp = $entryTimestamp !== '' ? $entryTimestamp : $entry->timestamp;
 
-        if ($cursor !== null) {
-            $normalizedCursor = DateNormalizer::normalize($cursor);
-            $normalizedCursor = $normalizedCursor !== '' ? $normalizedCursor : $cursor;
+        return $entryTimestamp !== '' ? $entryTimestamp : $entry->timestamp;
+    }
 
-            if ($sortDir === 'desc' && $entryTimestamp >= $normalizedCursor) {
-                return false;
-            }
-            if ($sortDir === 'asc' && $entryTimestamp <= $normalizedCursor) {
-                return false;
-            }
+    private function matchCursor(LogEntry $entry, string $normalizedCursor, string $sortDir): bool
+    {
+        $entryTimestamp = $this->entryTimestamp($entry);
+
+        if ($sortDir === 'desc') {
+            return $entryTimestamp < $normalizedCursor;
+        }
+
+        return $entryTimestamp > $normalizedCursor;
+    }
+
+    private function applyFilters(LogEntry $entry, LogViewerFilters $filters, ?string $normalizedCursor, string $sortDir, ?string $searchRegexPattern = null): bool
+    {
+        $entryTimestamp = $this->entryTimestamp($entry);
+
+        if ($normalizedCursor !== null && !$this->matchCursor($entry, $normalizedCursor, $sortDir)) {
+            return false;
         }
 
         if ($filters->dateFrom !== null && $entryTimestamp < $filters->dateFrom) {
@@ -375,11 +405,12 @@ class LogFileReader
                 $sqlMatch = $entry->sql !== null && @preg_match($pattern, $entry->sql) === 1;
             } else {
                 if ($filters->searchCaseSensitive) {
-                    $messageMatch = mb_strpos($entry->message, $filters->search) !== false;
-                    $sqlMatch = $entry->sql !== null && mb_strpos($entry->sql, $filters->search) !== false;
+                    // Byte search is exact for any UTF-8 text.
+                    $messageMatch = str_contains($entry->message, $filters->search);
+                    $sqlMatch = $entry->sql !== null && str_contains($entry->sql, $filters->search);
                 } else {
-                    $messageMatch = mb_stripos($entry->message, $filters->search) !== false;
-                    $sqlMatch = $entry->sql !== null && mb_stripos($entry->sql, $filters->search) !== false;
+                    $messageMatch = $this->containsIgnoreCase($entry->message, $filters->search);
+                    $sqlMatch = $entry->sql !== null && $this->containsIgnoreCase($entry->sql, $filters->search);
                 }
             }
 
@@ -389,6 +420,221 @@ class LogFileReader
         }
 
         return true;
+    }
+
+    /**
+     * Narrows [start, end) by date filters and cursor using binary search over the
+     * (time-sorted) file. A tolerance of one minute protects against slightly
+     * out-of-order lines; every line is still checked by applyFilters().
+     *
+     * @param resource $handle
+     * @return array{0: int, 1: int|null}
+     */
+    private function narrowRange($handle, string $filePath, ?string $parserType, ?LogViewerFilters $filters, ?string $normalizedCursor, string $sortDir): array
+    {
+        $lower = $filters?->dateFrom;
+        $upper = $filters?->dateTo;
+
+        if ($normalizedCursor !== null) {
+            if ($sortDir === 'asc' && ($lower === null || $normalizedCursor > $lower)) {
+                $lower = $normalizedCursor;
+            }
+            if ($sortDir === 'desc' && ($upper === null || $normalizedCursor < $upper)) {
+                $upper = $normalizedCursor;
+            }
+        }
+
+        if ($lower === null && $upper === null) {
+            return [0, null];
+        }
+
+        $stat = fstat($handle);
+        $size = $stat !== false ? (int) $stat['size'] : 0;
+        if ($size < 1_048_576) {
+            return [0, null];
+        }
+
+        $start = 0;
+        $end = null;
+
+        $lowerTarget = $this->shiftTimestamp($lower, '-1 minute');
+        if ($lowerTarget !== null) {
+            $start = $this->findLineOffset($handle, $size, $filePath, $parserType, $lowerTarget, false);
+        }
+
+        $upperTarget = $this->shiftTimestamp($upper, '+1 minute');
+        if ($upperTarget !== null) {
+            $found = $this->findLineOffset($handle, $size, $filePath, $parserType, $upperTarget, true);
+            $end = $found < $size ? max($found, $start) : null;
+        }
+
+        return [$start, $end];
+    }
+
+    private function shiftTimestamp(?string $timestamp, string $modifier): ?string
+    {
+        if ($timestamp === null || preg_match('~^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$~', $timestamp) !== 1) {
+            return null;
+        }
+
+        try {
+            return new DateTimeImmutable($timestamp)->modify($modifier)->format('Y-m-d H:i:s');
+        } catch (Throwable) {
+            return null;
+        }
+    }
+
+    /**
+     * Returns the offset of the first line whose timestamp is >= target
+     * (> target when $strict). Returns 0 / $size when timestamps cannot be read.
+     *
+     * @param resource $handle
+     */
+    private function findLineOffset($handle, int $size, string $filePath, ?string $parserType, string $target, bool $strict): int
+    {
+        $fallback = $strict ? $size : 0;
+        $isBefore = static fn (string $ts): bool => $strict ? $ts <= $target : $ts < $target;
+
+        // Reads lines from $pos and returns [lineStart, lineEnd, timestamp] of the first one with a timestamp
+        // (null: no line in [pos, limit), []: no timestamps at all, e.g. a format without dates).
+        $probe = function (int $pos, int $limit) use ($handle, $filePath, $parserType): ?array {
+            fseek($handle, $pos);
+            if ($pos > 0 && fgets($handle) === false) {
+                return null;
+            }
+
+            for ($i = 0; $i < 1_000; $i++) {
+                $lineStart = (int) ftell($handle);
+                if ($lineStart >= $limit) {
+                    return null;
+                }
+
+                $line = fgets($handle);
+                if ($line === false) {
+                    return null;
+                }
+
+                $ts = $this->lineTimestamp($line, $filePath, $parserType);
+                if ($ts !== null) {
+                    return [$lineStart, (int) ftell($handle), $ts];
+                }
+            }
+
+            return [];
+        };
+
+        $lo = 0;
+        $hi = $size;
+        while ($hi - $lo > 65_536) {
+            $mid = intdiv($lo + $hi, 2);
+            $result = $probe($mid, $hi);
+            if ($result === []) {
+                return $fallback;
+            }
+            if ($result === null) {
+                $hi = $mid;
+
+                continue;
+            }
+
+            [$lineStart, $lineEnd, $ts] = $result;
+            if ($isBefore($ts)) {
+                $lo = $lineEnd;
+            } else {
+                $hi = $lineStart;
+            }
+        }
+
+        // Exact linear phase from a known line start.
+        fseek($handle, $lo);
+        $unknown = 0;
+        while (($lineStart = (int) ftell($handle)) < $size && ($line = fgets($handle)) !== false) {
+            $ts = $this->lineTimestamp($line, $filePath, $parserType);
+            if ($ts === null) {
+                if (++$unknown > 10_000) {
+                    return $fallback;
+                }
+
+                continue;
+            }
+            if (!$isBefore($ts)) {
+                return $lineStart;
+            }
+        }
+
+        return $size;
+    }
+
+    private function lineTimestamp(string $line, string $filePath, ?string $parserType): ?string
+    {
+        $line = $this->trimLine($line);
+        if ($line === '') {
+            return null;
+        }
+
+        $ts = $this->entryTimestamp($this->parser->parse($line, $filePath, $parserType));
+
+        return preg_match('~^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$~', $ts) === 1 ? $ts : null;
+    }
+
+    /**
+     * @param resource $handle
+     */
+    private function countLinesBefore($handle, int $pos): int
+    {
+        fseek($handle, 0);
+        $count = 0;
+        // Position via ftell(): byte-exact even if string functions get rewritten to mb_*.
+        while (($remaining = $pos - (int) ftell($handle)) > 0) {
+            $chunk = fread($handle, min($remaining, 1_048_576));
+            if ($chunk === false || $chunk === '') {
+                break;
+            }
+            $count += substr_count($chunk, "\n");
+        }
+
+        return $count;
+    }
+
+    private function normalizeCursor(?string $cursor): ?string
+    {
+        if ($cursor === null) {
+            return null;
+        }
+
+        $normalizedCursor = DateNormalizer::normalize($cursor);
+
+        return $normalizedCursor !== '' ? $normalizedCursor : $cursor;
+    }
+
+    /**
+     * Same result as mb_stripos() !== false: byte search first, multibyte
+     * case folding only when the text or the needle contains non-ASCII bytes.
+     */
+    private function containsIgnoreCase(string $line, string $search): bool
+    {
+        if (stripos($line, $search) !== false) {
+            return true;
+        }
+
+        if (preg_match('~[\x80-\xFF]~', $search) !== 1 && preg_match('~[\x80-\xFF]~', $line) !== 1) {
+            return false;
+        }
+
+        return mb_stripos($line, $search) !== false;
+    }
+
+    /**
+     * Same result as mb_trim(), but avoids multibyte processing for ASCII edges.
+     */
+    private function trimLine(string $line): string
+    {
+        $trimmed = trim($line, " \f\n\r\t\v\0");
+        if ($trimmed !== '' && (ord($trimmed[0]) >= 0x80 || ord($trimmed[-1]) >= 0x80)) {
+            return mb_trim($trimmed);
+        }
+
+        return $trimmed;
     }
 
     private function getSearchRegexPattern(LogViewerFilters $filters): string
@@ -419,7 +665,7 @@ class LogFileReader
         }
 
         $timestamp = $entry->normalizedTimestamp;
-        if (str_starts_with($timestamp, '0000') || mb_strlen($timestamp) < 10) {
+        if (str_starts_with($timestamp, '0000') || strlen($timestamp) < 10) {
             return;
         }
 
@@ -461,11 +707,10 @@ class LogFileReader
      * @param resource $handle
      * @return Generator<int, string>
      */
-    private function readLinesForward($handle): Generator
+    private function readLinesForward($handle, int $lineNumber = 0, ?int $endPos = null): Generator
     {
-        $lineNumber = 0;
-        while (($line = fgets($handle)) !== false) {
-            yield $lineNumber++ => mb_trim($line);
+        while (($endPos === null || (int) ftell($handle) < $endPos) && ($line = fgets($handle)) !== false) {
+            yield $lineNumber++ => $this->trimLine($line);
         }
     }
 
@@ -473,15 +718,26 @@ class LogFileReader
      * @param resource $handle
      * @return Generator<int, string>
      */
-    private function readLinesReversed($handle, int $totalLines): Generator
+    private function readLinesReversed($handle, int $totalLines, ?int $endPos = null, int $startPos = 0): Generator
     {
-        fseek($handle, 0, SEEK_END);
-        $pos = ftell($handle);
+        if ($endPos === null) {
+            fseek($handle, 0, SEEK_END);
+            $pos = (int) ftell($handle);
+        } else {
+            $pos = $endPos;
+        }
         $leftover = '';
         $lineNumber = $totalLines - 1;
 
-        while ($pos > 0) {
-            $readSize = min($pos, 65_536);
+        // The data ends with "\n" (end of file or a range ending at a line start):
+        // the empty element after it is not a line and must not consume a line number.
+        $skipFirst = true;
+
+        while ($pos > $startPos) {
+            $readSize = min($pos - $startPos, 65_536);
+            if ($readSize < 1) {
+                break;
+            }
             $pos -= $readSize;
             fseek($handle, $pos);
             /** @var string $chunk */
@@ -493,12 +749,19 @@ class LogFileReader
             $leftover = $lines[0];
 
             for ($i = $count - 1; $i >= 1; $i--) {
-                yield $lineNumber-- => mb_trim($lines[$i]);
+                if ($skipFirst) {
+                    $skipFirst = false;
+                    if ($lines[$i] === '') {
+                        continue;
+                    }
+                }
+
+                yield $lineNumber-- => $this->trimLine($lines[$i]);
             }
         }
 
         if ($leftover !== '') {
-            yield $lineNumber-- => mb_trim($leftover);
+            yield $lineNumber-- => $this->trimLine($leftover);
         }
     }
 }

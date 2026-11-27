@@ -111,7 +111,7 @@ func (p *SyslogParser) ExtractStatsFields(line []byte) (level, channel, hour str
 		if line[10] == ' ' {
 			hour = unsafeString(line[:10]) + "T" + unsafeString(line[11:13])
 		}
-		
+
 		// 2026-03-29T00:05:43.791811+01:00 DESKTOP-test sudo: ...
 		rest := line[20:]
 		// Find end of timestamp
@@ -141,17 +141,26 @@ func (p *SyslogParser) ExtractStatsFields(line []byte) (level, channel, hour str
 	return "", "", "", false
 }
 
+var (
+	kwError = []byte("error")
+	kwFatal = []byte("fatal")
+	kwPanic = []byte("panic")
+	kwCrit  = []byte("crit")
+	kwWarn  = []byte("warn")
+	kwDebug = []byte("debug")
+)
+
+// syslogLevelFromMessage derives a level from keywords (case-insensitive, no allocation).
 func syslogLevelFromMessage(line []byte) string {
-	lower := bytes.ToLower(line)
 	switch {
-	case bytes.Contains(lower, []byte("error")),
-		bytes.Contains(lower, []byte("fatal")),
-		bytes.Contains(lower, []byte("panic")),
-		bytes.Contains(lower, []byte("crit")):
+	case containsFoldASCIIBytes(line, kwError),
+		containsFoldASCIIBytes(line, kwFatal),
+		containsFoldASCIIBytes(line, kwPanic),
+		containsFoldASCIIBytes(line, kwCrit):
 		return "ERROR"
-	case bytes.Contains(lower, []byte("warn")):
+	case containsFoldASCIIBytes(line, kwWarn):
 		return "WARNING"
-	case bytes.Contains(lower, []byte("debug")):
+	case containsFoldASCIIBytes(line, kwDebug):
 		return "DEBUG"
 	default:
 		return "INFO"

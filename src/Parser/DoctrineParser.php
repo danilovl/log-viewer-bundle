@@ -73,6 +73,6 @@ final class DoctrineParser implements LogInterfaceParser, LogParserGoPatternInte
 
     public function getGoPattern(?string $parserType): string
     {
-        return mb_trim(self::PATTERN, '~');
+        return trim(self::PATTERN, '~');
     }
 }

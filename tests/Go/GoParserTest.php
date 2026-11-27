@@ -210,9 +210,11 @@ final class GoParserTest extends TestCase
         yield ['apache_access.log', 'apache_access', '2026-03-29 11:01:00', '2026-03-29 11:01:01', 1];
         yield ['apache_access.log', 'apache_access', '2026-03-29 11:02:00', '2026-03-29 11:02:01', 0];
 
-        yield ['syslog.log', 'syslog', '2026-10-11 22:14:14', '2026-10-11 22:14:16', 2];
-        yield ['syslog.log', 'syslog', '2026-10-11 22:15:00', '2026-10-11 22:15:02', 2];
-        yield ['syslog.log', 'syslog', '2026-10-11 22:16:00', '2026-10-11 22:16:02', 2];
+        // BSD syslog has no year: the parser assumes the current one.
+        $year = date('Y');
+        yield ['syslog.log', 'syslog', $year . '-10-11 22:14:14', $year . '-10-11 22:14:16', 1];
+        yield ['syslog.log', 'syslog', $year . '-10-11 22:15:00', $year . '-10-11 22:15:02', 1];
+        yield ['syslog.log', 'syslog', $year . '-10-11 22:16:00', $year . '-10-11 22:16:02', 0];
 
         yield ['json.log', 'json', '2026-03-29 10:00:00', '2026-03-29 10:00:01', 1];
         yield ['json.log', 'json', '2026-03-29 10:01:00', '2026-03-29 10:01:01', 1];

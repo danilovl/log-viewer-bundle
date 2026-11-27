@@ -15,23 +15,26 @@ final class MonologLineParser implements LogInterfaceParser, LogParserGoPatternI
 
     public function parse(string $line, string $filename): LogEntry
     {
+        // Byte functions are safe here: all delimiters are ASCII and UTF-8 never
+        // contains ASCII bytes inside multibyte sequences (same result as mb_*).
         if ($line !== '' && $line[0] === '[') {
-            $posBracketEnd = mb_strpos($line, '] ');
+            $posBracketEnd = strpos($line, '] ');
             if ($posBracketEnd !== false) {
-                $timestamp = mb_substr($line, 1, $posBracketEnd - 1);
-                $afterTimestamp = mb_substr($line, $posBracketEnd + 2);
+                $timestamp = substr($line, 1, $posBracketEnd - 1);
+                $afterTimestamp = substr($line, $posBracketEnd + 2);
 
-                $posDot = mb_strpos($afterTimestamp, '.');
-                $posColon = mb_strpos($afterTimestamp, ': ');
+                $posDot = strpos($afterTimestamp, '.');
+                $posColon = strpos($afterTimestamp, ': ');
 
                 if ($posDot !== false && $posColon !== false && $posDot < $posColon) {
-                    $channel = mb_substr($afterTimestamp, 0, $posDot);
-                    $level = mb_substr($afterTimestamp, $posDot + 1, $posColon - $posDot - 1);
-                    $messagePart = mb_substr($afterTimestamp, $posColon + 2);
+                    $messagePart = substr($afterTimestamp, $posColon + 2);
 
                     if (str_contains($messagePart, '{') || str_contains($messagePart, '[')) {
                         return $this->parseWithRegex($line, $filename);
                     }
+
+                    $channel = substr($afterTimestamp, 0, $posDot);
+                    $level = substr($afterTimestamp, $posDot + 1, $posColon - $posDot - 1);
 
                     return new LogEntry(
                         timestamp: $timestamp,
@@ -110,6 +113,6 @@ final class MonologLineParser implements LogInterfaceParser, LogParserGoPatternI
 
     public function getGoPattern(?string $parserType): string
     {
-        return mb_trim(self::PATTERN, '~');
+        return trim(self::PATTERN, '~');
     }
 }

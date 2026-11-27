@@ -122,7 +122,7 @@ readonly class GoLogClient
         }
 
         $output = $process->getOutput();
-        $trimmedOutput = mb_trim($output);
+        $trimmedOutput = trim($output);
         $decoded = json_decode($trimmedOutput, true);
         $data = is_array($decoded) ? $decoded : [];
 
@@ -139,7 +139,7 @@ readonly class GoLogClient
             $newTimeline = [];
             foreach ($stats->timeline as $timestamp => $count) {
                 $normalizedTs = DateNormalizer::normalize((string) $timestamp);
-                if (str_starts_with($normalizedTs, '0000') || mb_strlen($normalizedTs) < 10) {
+                if (str_starts_with($normalizedTs, '0000') || strlen($normalizedTs) < 10) {
                     continue;
                 }
 
@@ -191,7 +191,7 @@ readonly class GoLogClient
         }
 
         $output = $process->getOutput();
-        $trimmedOutput = mb_trim($output);
+        $trimmedOutput = trim($output);
         $decoded = json_decode($trimmedOutput, true);
         $result = is_array($decoded) ? $decoded : [];
 
@@ -296,7 +296,7 @@ readonly class GoLogClient
         }
 
         $output = $process->getOutput();
-        $goParserName = mb_trim($output);
+        $goParserName = trim($output);
         if ($goParserName === '') {
             return null;
         }
@@ -306,7 +306,7 @@ readonly class GoLogClient
 
     private function mapLogEntry(string $line): LogEntry
     {
-        $trimmedLine = mb_trim($line);
+        $trimmedLine = trim($line);
         $decoded = json_decode($trimmedLine, true);
         $data = is_array($decoded) ? $decoded : [];
 
@@ -352,7 +352,7 @@ readonly class GoLogClient
     private function getBinaryPath(): string
     {
         $binaryPathValue = $this->configurationProvider->parserGoBinaryPath;
-        $binaryPath = mb_trim($binaryPathValue);
+        $binaryPath = trim($binaryPathValue);
 
         if (!file_exists($binaryPath)) {
             $cwd = getcwd();

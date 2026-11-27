@@ -25,7 +25,7 @@ final class MysqlParser implements LogInterfaceParser
             );
         }
 
-        $levelOriginal = mb_strtoupper($matches['level']);
+        $levelOriginal = strtoupper($matches['level']);
         $levelMap = [
             'NOTE' => 'INFO',
             'SYSTEM' => 'INFO',

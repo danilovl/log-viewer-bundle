@@ -99,6 +99,20 @@ func parseMonologLine(line []byte, entry *LogEntry, full, parseTime bool) bool {
 				break
 			}
 
+			// Every candidate is a suffix of trimmed, so it ends with the same byte:
+			// only '{' candidates can succeed when it ends with '}', only '[' with ']'.
+			// This avoids up to 64 failing json.Unmarshal calls per entry.
+			var openCh byte
+			switch trimmed[len(trimmed)-1] {
+			case '}':
+				openCh = '{'
+			case ']':
+				openCh = '['
+			}
+			if openCh == 0 {
+				break
+			}
+
 			var bestMap map[string]interface{}
 			bestIsMap := false
 			bestIdx := -1
@@ -109,21 +123,27 @@ func parseMonologLine(line []byte, entry *LogEntry, full, parseTime bool) bool {
 				if idx == -1 {
 					break
 				}
-				potentialJSON := trimmed[idx:]
-				var m map[string]interface{}
-				if err := unmarshalLenientJSON(potentialJSON, &m); err == nil {
-					bestIdx = idx
-					bestMap = m
-					bestIsMap = true
-					break
-				}
-				var a []interface{}
-				if err := unmarshalLenientJSON(potentialJSON, &a); err == nil {
-					bestIdx = idx
-					bestIsMap = false
-					break
-				}
 				searchBefore = idx
+				if trimmed[idx] != openCh {
+					continue
+				}
+				potentialJSON := trimmed[idx:]
+				if openCh == '{' {
+					var m map[string]interface{}
+					if err := unmarshalLenientJSON(potentialJSON, &m); err == nil {
+						bestIdx = idx
+						bestMap = m
+						bestIsMap = true
+						break
+					}
+				} else {
+					var a []interface{}
+					if err := unmarshalLenientJSON(potentialJSON, &a); err == nil {
+						bestIdx = idx
+						bestIsMap = false
+						break
+					}
+				}
 			}
 
 			if bestIdx == -1 {

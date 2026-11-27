@@ -25,7 +25,7 @@ final class SupervisordParser implements LogInterfaceParser
             );
         }
 
-        $levelOriginal = mb_strtoupper($matches['level']);
+        $levelOriginal = strtoupper($matches['level']);
         $levelMap = [
             'CRIT' => 'ERROR',
             'ERRO' => 'ERROR',

@@ -129,7 +129,7 @@ class CompositeLogParser
 
     public function identify(string $line): ?string
     {
-        $trimmedLine = mb_trim($line);
+        $trimmedLine = trim($line);
         if ($trimmedLine === '') {
             return null;
         }

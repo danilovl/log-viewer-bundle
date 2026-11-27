@@ -69,7 +69,7 @@ final class Configuration implements ConfigurationInterface
                     ->defaultValue(dirname(__DIR__, 2) . '/bin/dist/go-parser')
                     ->validate()
                         ->always(static function ($v) {
-                            return is_string($v) ? mb_trim($v) : $v;
+                            return is_string($v) ? trim($v) : $v;
                         })
                     ->end()
                 ->end()
@@ -285,7 +285,7 @@ final class Configuration implements ConfigurationInterface
             ->scalarPrototype()
                 ->validate()
                     ->always(static function ($v) {
-                        return is_string($v) ? mb_trim($v) : $v;
+                        return is_string($v) ? trim($v) : $v;
                     })
                 ->end()
                 ->validate()
